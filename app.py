@@ -15,14 +15,28 @@ def carregar_css(nome_arquivo):
 if os.path.exists("style.css"):
     carregar_css("style.css")
 else:
-    # Fallback simples caso esqueça de subir o arquivo
-    st.warning("⚠️ Arquivo style.css não encontrado. O layout está no modo básico.")
+    # CSS de emergência caso o arquivo não seja encontrado
+    st.markdown("""
+    <style>
+        .stApp { background-color: #f1f5f9; }
+        .stButton button { background-color: #2563eb; color: white; border-radius: 8px; }
+        /* Estilo para o bloco de cópia ficar bonito (branco e limpo) */
+        .stCodeBlock {
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        pre {
+            background-color: #ffffff !important; /* Força fundo branco */
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 #           MENU LATERAL
 # ==========================================
 
-# Se tiver logo, mostra. Se não, não quebra.
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
 
@@ -37,7 +51,7 @@ pagina_escolhida = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 <div style="text-align: center; color: #94a3b8; font-size: 12px;">
-    Engage Eletro<br>Sistema Interno v2.0
+    Engage Eletro<br>Sistema Interno v3.0
 </div>
 """, unsafe_allow_html=True)
 
@@ -122,7 +136,7 @@ def pagina_pendencias():
     st.markdown("Use este painel para gerar mensagens sobre tentativas de entrega, atrasos e extravios.")
     st.markdown("---")
     
-    col1, col2 = st.columns([1, 2], gap="large") # Gap large da espaço entre as colunas
+    col1, col2 = st.columns([1, 2], gap="large")
     
     with col1:
         st.subheader("1. Configuração")
@@ -136,12 +150,9 @@ def pagina_pendencias():
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
-        st.text_area("Texto Gerado:", value=texto_final, height=450)
-        
-        # Espaço
-        st.write("")
-        if st.button("COPIAR MENSAGEM", key="btn_p"):
-            st.success("Texto pronto! Use Ctrl+C para copiar.")
+        # MENSAGEM SUCESSO E BOTÃO DE COPIAR INTEGRADO
+        st.success("Mensagem gerada! Clique no ícone de copiar 📋 que aparece no canto da caixa ao passar o mouse.")
+        st.code(texto_final, language="text")
 
 def pagina_sac():
     st.title("🎧 SAC / Atendimento")
@@ -161,12 +172,11 @@ def pagina_sac():
         texto_cru = modelos_sac[opcao]
         texto_final = texto_cru.replace("{colaborador}", colab)
         
-        st.text_area("Texto Gerado:", value=texto_final, height=450)
-        st.caption("Nota: Campos pontilhados (....) devem ser preenchidos manualmente.")
+        # MENSAGEM SUCESSO E BOTÃO DE COPIAR INTEGRADO
+        st.success("Mensagem gerada! Clique no ícone de copiar 📋 que aparece no canto da caixa ao passar o mouse.")
+        st.code(texto_final, language="text")
         
-        st.write("")
-        if st.button("COPIAR MENSAGEM", key="btn_s"):
-            st.success("Texto pronto! Use Ctrl+C para copiar.")
+        st.caption("Nota: Campos pontilhados (....) devem ser preenchidos manualmente.")
 
 # ==========================================
 #           ROTEAMENTO
