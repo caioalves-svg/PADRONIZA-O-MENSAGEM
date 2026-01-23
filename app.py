@@ -2,28 +2,32 @@ import streamlit as st
 import os
 
 # Configuração da página
-st.set_page_config(page_title="Sistema Integrado", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="Sistema Integrado", page_icon="🚀", layout="wide")
 
 # ==========================================
-#      CARREGAR ESTILO (CSS EXTERNO)
+#      CARREGAR O DESIGN (CSS)
 # ==========================================
 def carregar_css(nome_arquivo):
     with open(nome_arquivo) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# Tenta carregar o style.css se ele existir no GitHub
+# Verifica se o arquivo existe e carrega
 if os.path.exists("style.css"):
     carregar_css("style.css")
+else:
+    # Fallback simples caso esqueça de subir o arquivo
+    st.warning("⚠️ Arquivo style.css não encontrado. O layout está no modo básico.")
 
 # ==========================================
 #           MENU LATERAL
 # ==========================================
 
-# Tenta carregar a logo
+# Se tiver logo, mostra. Se não, não quebra.
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
 
 st.sidebar.title("Navegação")
+st.sidebar.markdown("Selecione o módulo:")
 
 pagina_escolhida = st.sidebar.radio(
     "Ir para:",
@@ -31,7 +35,11 @@ pagina_escolhida = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown('<div class="sidebar-footer">© Engage Eletro<br>Sistema Interno</div>', unsafe_allow_html=True)
+st.sidebar.markdown("""
+<div style="text-align: center; color: #94a3b8; font-size: 12px;">
+    Engage Eletro<br>Sistema Interno v2.0
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================
 #      DADOS (Listas e Dicionários)
@@ -55,7 +63,7 @@ colaboradores_sac = sorted([
     "Isadora", "Lorrayne", "Leticia"
 ])
 
-# --- MENSAGENS PENDÊNCIAS ---
+# Mensagens Pendências
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -71,7 +79,7 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
-# --- MENSAGENS SAC ---
+# Mensagens SAC
 modelos_sac = {
     "Solicitação de Coleta": """Olá,\n\nVimos que você se encontra dentro do prazo de troca / cancelamento e neste caso iremos solicitar ao setor responsável para que seja gerada a nota fiscal de coleta e seja encaminhada para a transportadora responsável para a realização do recolhimento da mercadoria.\n\nInstruções de devolução:\n- Favor devolver as mercadorias em suas embalagens originais ou similares.\n- A transportadora irá realizar a coleta das mercadorias em sua residência nos próximos 15/20 dias úteis. Favor enviar dentro da embalagem um xerox da Nota Fiscal.\n\nRessaltamos que após a coleta do seu produto, estaremos prosseguindo com as tratativas do seu atendimento de acordo com o solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "Barrar Entrega na Transportadora": """Olá,\n\nIremos solicitar a transportadora responsável que barre a entrega. Caso tentem realizar a entrega, gentileza recusar o recebimento.\nAssim que o produto retornar à Engage Eletro seguiremos com as tratativas conforme políticas de troca ou reembolso.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -110,46 +118,55 @@ modelos_sac = {
 # ==========================================
 
 def pagina_pendencias():
-    st.header("🚚 Pendências Logísticas")
+    st.title("🚚 Pendências Logísticas")
+    st.markdown("Use este painel para gerar mensagens sobre tentativas de entrega, atrasos e extravios.")
     st.markdown("---")
     
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 2], gap="large") # Gap large da espaço entre as colunas
+    
     with col1:
-        st.info("Configuração")
-        colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
-        transp = st.selectbox("🚛 Transportadora:", lista_transportadoras, key="transp_p")
+        st.subheader("1. Configuração")
+        colab = st.selectbox("👤 Quem é você?", colaboradores_pendencias, key="colab_p")
+        transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
 
     with col2:
-        opcao = st.selectbox("Motivo:", list(modelos_pendencias.keys()), key="msg_p")
+        st.subheader("2. Mensagem")
+        opcao = st.selectbox("Qual o motivo do contato?", list(modelos_pendencias.keys()), key="msg_p")
+        
         texto_cru = modelos_pendencias[opcao]
+        texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
-        texto_final = texto_cru.replace("{transportadora}", transp)
-        texto_final = texto_final.replace("{colaborador}", colab)
+        st.text_area("Texto Gerado:", value=texto_final, height=450)
         
-        st.text_area("Texto Final:", value=texto_final, height=500)
-        if st.button("Confirmar (Pendências)", key="btn_p"):
-            st.success("Copiado!")
+        # Espaço
+        st.write("")
+        if st.button("COPIAR MENSAGEM", key="btn_p"):
+            st.success("Texto pronto! Use Ctrl+C para copiar.")
 
 def pagina_sac():
-    st.header("🎧 SAC / Atendimento")
+    st.title("🎧 SAC / Atendimento")
+    st.markdown("Use este painel para gerar respostas rápidas para o cliente.")
     st.markdown("---")
     
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 2], gap="large")
+    
     with col1:
-        st.info("Configuração SAC")
-        colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
+        st.subheader("1. Configuração")
+        colab = st.selectbox("👤 Quem é você?", colaboradores_sac, key="colab_s")
 
     with col2:
-        opcao = st.selectbox("Motivo:", list(modelos_sac.keys()), key="msg_s")
-        texto_cru = modelos_sac[opcao]
+        st.subheader("2. Mensagem")
+        opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         
+        texto_cru = modelos_sac[opcao]
         texto_final = texto_cru.replace("{colaborador}", colab)
         
-        st.text_area("Texto Final:", value=texto_final, height=500)
-        st.caption("Nota: Se houver pontilhados (....) no texto, preencha manualmente após copiar.")
+        st.text_area("Texto Gerado:", value=texto_final, height=450)
+        st.caption("Nota: Campos pontilhados (....) devem ser preenchidos manualmente.")
         
-        if st.button("Confirmar (SAC)", key="btn_s"):
-            st.success("Copiado!")
+        st.write("")
+        if st.button("COPIAR MENSAGEM", key="btn_s"):
+            st.success("Texto pronto! Use Ctrl+C para copiar.")
 
 # ==========================================
 #           ROTEAMENTO
