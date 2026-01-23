@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px # Biblioteca de gráficos avançados
 import os
 import urllib.parse
 from datetime import datetime
@@ -14,9 +15,8 @@ ARQUIVO_DADOS = "historico_atendimentos.csv"
 #      FUNÇÕES DE BANCO DE DADOS (CSV)
 # ==========================================
 def inicializar_banco():
-    """Cria o arquivo CSV se ele não existir (SEM A COLUNA COLABORADOR)"""
+    """Cria o arquivo CSV se ele não existir"""
     if not os.path.exists(ARQUIVO_DADOS):
-        # Removi "Colaborador" das colunas
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Motivo", "Transportadora"])
         df.to_csv(ARQUIVO_DADOS, index=False)
 
@@ -29,12 +29,10 @@ def salvar_registro(setor, motivo, transportadora="-"):
         "Data": agora.strftime("%Y-%m-%d"),
         "Hora": agora.strftime("%H:%M:%S"),
         "Setor": setor,
-        # Não salvamos mais o colaborador aqui
         "Motivo": motivo,
         "Transportadora": transportadora
     }
     
-    # Carrega, adiciona e salva
     try:
         df = pd.read_csv(ARQUIVO_DADOS)
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
@@ -53,24 +51,37 @@ def carregar_dados():
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #1e293b !important; background-color: #f1f5f9 !important; }
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #1e293b !important; background-color: #f8fafc !important; }
+    
+    /* Sidebar */
     section[data-testid="stSidebar"] { background-color: #0f172a !important; }
-    section[data-testid="stSidebar"] * { color: #f8fafc !important; }
-    h1, h2, h3 { color: #1e40af !important; }
+    section[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
+    
+    /* Títulos e Métricas */
+    h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
+    div[data-testid="stMetricValue"] { color: #2563eb !important; }
+    
+    /* Inputs */
     .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
-        background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 12px;
+        background-color: #ffffff !important; color: #000000 !important; border: 1px solid #e2e8f0; border-radius: 8px;
     }
-    .stCodeBlock { background-color: #ffffff !important; border: 1px solid #cbd5e1; border-radius: 12px; }
-    .stCodeBlock code { color: #000000 !important; font-family: 'Inter', sans-serif !important; white-space: pre-wrap !important; }
+    
+    /* Code Block */
+    .stCodeBlock { background-color: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .stCodeBlock code { color: #334155 !important; font-family: 'Inter', sans-serif !important; }
+
+    /* Botão Principal */
     .stButton button {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; color: white !important;
-        border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; width: 100%;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
     }
-    .stButton button:hover { transform: translateY(-2px); box-shadow: 0 8px 10px rgba(0,0,0,0.2); }
-    /* Estilo especial para o botão de registrar (Verde) */
+    .stButton button:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+    
+    /* Botão Registrar (Verde) */
     .botao-registrar button {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -82,15 +93,13 @@ if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
 
 st.sidebar.title("Navegação")
-st.sidebar.markdown("Selecione o módulo:")
-
 pagina_escolhida = st.sidebar.radio(
     "Ir para:",
     ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial")
 )
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Engage Eletro | Sistema v7.0 (Novos Scripts)")
+# Removido o texto da versão conforme solicitado
 
 # ==========================================
 #      DADOS (Listas)
@@ -100,8 +109,9 @@ lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRO
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
-#      MENSAGENS PENDÊNCIAS (Mantidas)
+#      MENSAGENS (Dicionários)
 # ==========================================
+# (Mantendo os mesmos dicionários já atualizados anteriormente)
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -117,70 +127,37 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
-# ==========================================
-#      MENSAGENS SAC (NOVOS TEXTOS 2024)
-# ==========================================
 modelos_sac = {
     "Solicitação de Coleta": """Olá,\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Barrar Entrega na Transportadora": """Olá,\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Assistência Técnica (Dentro dos 7 dias)": """Olá,\nInformamos que o processo de troca via loja possui um prazo total de até 20 dias úteis (contando a partir da data de coleta).\n\nPara solucionar o seu problema de forma muito mais rápida, recomendamos acionar diretamente a assistência técnica da fabricante {fabricante}, que possui prioridade no atendimento. Seguem as informações de contato:\n{contato_assistencia}\n\nCaso a assistência técnica não consiga resolver ou seja inviável, por favor, nos informe. Verificaremos a possibilidade de troca diretamente conosco, mediante a disponibilidade em nosso estoque.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Prazos de Reembolso": """Olá!\nA devolução do valor será realizada na mesma forma de pagamento utilizada na compra:\n\n- Boleto Bancário: O reembolso será feito em conta bancária de mesma titularidade ou via vale-presente. Se os dados informados estiverem corretos, o crédito ocorre em até 3 dias úteis.\n- Cartão de Crédito: O estorno será processado pela operadora do cartão e, dependendo da data de fechamento da sua fatura, poderá ser visualizado em uma ou duas faturas subsequentes.\n- PIX: O reembolso será realizado na conta de origem do PIX em até um dia útil.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Assistência Técnica (Fora dos 7 dias)": """Olá,\nVerificamos que a sua compra foi realizada no dia {data_compra}, referente à NF-{nota_fiscal}. Desta forma, o pedido encontra-se fora do prazo de 7 dias para cancelamento ou troca direta com a loja. No entanto, seu produto está amparado pela garantia do fabricante, que cobre defeitos de funcionamento.\n\nPara agilizar o reparo, segue o link para localizar o posto autorizado mais próximo de sua residência: {link_posto}\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Troca de Modelo (Dentro de 7 dias)": """Olá,\nEsclarecemos que a troca direta é realizada em casos de divergência de pedido, defeito ou avaria. Não efetuamos trocas por insatisfação de modelo, cor ou voltagem após o envio correto.\n\nNeste caso, como prefere prosseguir? Você deseja permanecer com o produto recebido ou prefere seguir com o cancelamento e reembolso da compra?\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Código Postal (Logística Reversa)": """Olá,\nSegue abaixo o código de postagem para a logística reversa. Para utilizá-lo, dirija-se a uma agência dos Correios com o produto devidamente embalado e apresente o código:\n{codigo_postagem}\n\nImportante:\n- O processo não gera custo para você.\n- Não é necessário endereçar a embalagem (remetente/destinatário), pois o código já vincula todos os dados.\n- Leve o Código de Autorização anotado ou no celular.\n\nApós o retorno do produto ao nosso Centro de Distribuição, seguiremos com a tratativa solicitada.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Reenvio Solicitado": """Olá,\nTemos boas notícias! O seu novo envio já foi solicitado. O pedido será liberado para transporte em até 72h úteis. Assim que tivermos o novo rastreio, informaremos você.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Acareação": """Olá,\nAbriremos um chamado de acareação junto à transportadora responsável. Neste procedimento, a transportadora retornará ao local de entrega para identificar quem recebeu a mercadoria e confrontar as informações.\n\nO prazo para a conclusão desta tratativa é de até 7 dias úteis. Pedimos que aguarde nosso retorno com a resolução.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Confirmação de Entrega": """Olá,\nDe acordo com o sistema da transportadora {transportadora}, o seu pedido consta como entregue no dia {data_entrega}. Segue em anexo o comprovante de entrega: (QUANDO ESTIVER DISPONÍVEL E ASSINADO)\n\nCaso você não reconheça este recebimento, por favor, nos informe imediatamente para que possamos iniciar a acareação e as buscas pela mercadoria junto à transportadora.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Conversão GLP/GNV": """Olá,\nInformamos que sua mercadoria sai de fábrica ajustada para GLP (gás de botijão). A conversão para Gás Natural (GNV) deve ser feita conforme as orientações do manual de instruções.\n\nAtenção: Quando a conversão é realizada pela rede de assistência autorizada da fabricante, o produto mantém a garantia original intacta.\n\nDados da Fabricante para agendamento: {fabricante}\nSite: {site_fabricante}\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Solicitação de Dados Bancários": """Olá,\nPara que possamos processar o seu reembolso, por favor, informe os dados bancários do titular da compra:\n\nNome do titular da compra:\nCPF do titular da compra:\nNome do banco:\nChave Pix:\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Oferecer Desconto por Avaria": """Olá,\nLamentamos sinceramente pelo ocorrido. Gostaríamos de propor uma solução ágil.\nPrimeiramente, o produto está funcionando normalmente (apesar da avaria estética)?\n\nCaso o funcionamento esteja perfeito e você tenha interesse em permanecer com o item, podemos oferecer um reembolso parcial no valor de R$ {valor_desconto} como desconto pela avaria.\n\n- O produto continuará com a garantia total de funcionamento pela fabricante.\n\nSe aceitar esta proposta, por favor, nos informe os dados abaixo para pagamento:\nNome do titular da compra:\nCPF do titular da compra:\nNome do banco:\nChave Pix:\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Insucesso na Entrega (Solicitar Dados)": """Olá,\nA transportadora nos informou que está com dificuldades para localizar o endereço ou finalizar a entrega. Para evitar a devolução, por favor, confirme os dados abaixo e nos forneça telefones atualizados:\n\nRua: {rua}\nCEP: {cep}\nNúmero: {numero}\nBairro: {bairro}\nCidade: {cidade}\nEstado: {estado}\nComplemento: {complemento}\nPonto de Referência: {referencia}\n2 telefones ativos (com DDD):\n\nAtenção: Caso não tenhamos retorno breve, o produto retornará ao nosso estoque e seguiremos com o reembolso.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Nova Tentativa de Entrega": """Olá,\nJá repassamos as informações para a transportadora. Uma nova tentativa de entrega será realizada no prazo de 5 a 7 dias úteis, podendo ocorrer antes. Estamos acompanhando para garantir que você receba seu pedido o quanto antes.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Mercadoria em Trânsito": """Olá,\nConsultamos o rastreio e seu pedido segue em trânsito normal, com previsão de entrega até o dia {previsao_entrega}, podendo chegar antes.\n\nVocê pode acompanhar a entrega através dos dados abaixo:\nLink: {link_rastreio}\nNota fiscal: {nota_fiscal}\nTransportadora: {transportadora}\n\nPara rastrear, utilize o CPF do titular da compra.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Erro de Integração": """Olá,\nPedimos sinceras desculpas pelo transtorno. Identificamos um erro de integração sistêmica que afetou alguns pedidos, incluindo o seu. Nossa equipe de TI já está atuando na correção e a liberação do seu pedido ocorrerá em breve.\n\nAgradecemos sua paciência e estamos à disposição.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Erro de Integração com Atraso": """Olá,\nPedimos desculpas pela demora. Devido a uma falha de integração em nosso sistema, tivemos um impacto na operação de envios. No entanto, já solicitamos prioridade máxima para o seu pedido, a fim de que ele seja despachado o mais rápido possível.\n\nContamos com a sua compreensão e lamentamos o inconveniente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Extravio Aguardar Confirmação": """Olá,\nA transportadora nos sinalizou uma possível situação de extravio com o seu pedido. Estamos em contato direto com eles para tentar localizar a mercadoria com urgência.\n\nPedimos a gentileza de aguardar um prazo de 48 horas para que possamos confirmar a situação e dar um retorno definitivo. Fique tranquilo(a): caso o pedido não seja localizado neste prazo, iniciaremos imediatamente os procedimentos de reenvio ou reembolso para garantir sua satisfação.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Extravio com Opção de Reenvio": """Olá,\nLamentamos pelo transtorno causado. Confirmamos junto à transportadora que houve o extravio de sua mercadoria durante o trajeto. Para resolvermos isso rapidamente, gostaríamos de saber como prefere prosseguir:\n\nVocê deseja o reenvio de um novo produto ou o reembolso total da compra?\n\nAguardamos seu retorno para seguir com a opção escolhida.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Fiscalização": """Olá,\nIdentificamos que seu pedido está retido na fiscalização (SEFAZ). Não se preocupe, já estamos em contato com a transportadora {transportadora} para providenciar a liberação o mais rápido possível.\n\nDevido a este trâmite fiscal, a entrega poderá sofrer um pequeno atraso. Assim que a mercadoria for liberada, solicitaremos prioridade na rota de entrega.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Item Faltante": """Olá,\nSentimos muito pelo ocorrido. Já acionamos o nosso estoque e a expedição para verificar a disponibilidade do item faltante e providenciar o envio separado para você.\n\nRetornaremos com uma posição em breve.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Atraso na Entrega": """Olá,\nLamentamos pelo atraso na entrega do seu pedido. Estamos em contato ativo com a transportadora para entender o motivo e cobramos uma nova previsão de entrega com urgência e prioridade de finalização. Manteremos você informado(a).\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Entrega (Serviços não inclusos)": """Olá,\nGostaríamos de esclarecer alguns pontos sobre a entrega: O serviço contratado pela Engage Eletro junto às transportadoras parceiras cobre a entrega do produto até a entrada (porta ou portaria) do endereço indicado. O serviço não inclui: montagem/desmontagem, subida de escadas (se não houver elevador ou se o produto não couber), içamento por guincho ou instalação.\n\nAs entregas ocorrem de segunda a sexta-feira, em horário comercial.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Agradecimento": """Olá,\nQue ótima notícia! Fico muito feliz que tenha dado tudo certo. Sempre que tiver dúvidas, sugestões ou precisar de ajuda, não hesite em nos contatar. Estamos aqui para garantir a sua melhor experiência.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Código Coleta Domiciliar": """Olá,\nSegue abaixo o código para a logística reversa (coleta domiciliar). Para que a coleta seja efetuada com sucesso, o produto deve estar devidamente embalado quando a transportadora chegar.\n\nCódigo de Coleta: {codigo_coleta}\n\nObservações:\n- O processo não gera custos para o cliente.\n- Não é necessário preencher dados de remetente/destinatário na caixa, o código já contém as informações.\n\nAssim que o produto retornar ao nosso Centro de Distribuição, seguiremos com a tratativa solicitada.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Embalagem Similar": """Olá,\nPara garantir que o produto chegue intacto ao nosso centro de distribuição e seu processo seja finalizado sem problemas, reforçamos a importância da embalagem:\nRecomendamos envolver o produto em plástico bolha e utilizar uma caixa de papelão resistente (pode ser reutilizada, desde que sem rótulos antigos). Isso evita danos adicionais no transporte.\n\nAgradecemos sua colaboração.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Termo para Troca Casada": """Olá,\nPara agilizar o processo e tentar realizar a entrega do novo produto no mesmo momento da coleta do antigo, propomos a formalização de um Termo de Acordo Extrajudicial.\n\nO procedimento é simples:\n- Enviaremos o termo pelo nosso Jurídico.\n- Você deve assinar todas as páginas (conforme seu documento de identificação).\n- Envie o termo assinado + foto do documento (RG ou CNH) em até 48 horas.\n- Após validação jurídica, seguiremos com o envio e coleta simultânea.\n\nPodemos seguir com este procedimento?\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Recusa de Troca (Avaria)": """Olá,\nConforme informamos, a troca do produto avariado é necessária agora para evitar problemas futuros, uma vez que o prazo de reclamação por danos físicos é limitado.\n\nRespeitamos sua decisão, mas entendemos que, ao recusar a troca neste momento, o(a) senhor(a) está ciente e assume o risco de permanecer com um produto com avaria estética, isentando a loja de reclamações futuras sobre este dano específico.\n\nReforçamos que seu produto continua coberto pela garantia do fabricante exclusivamente para defeitos funcionais, conforme a lei. Avarias físicas não são cobertas pela garantia de fábrica posteriormente.\n\nPermanecemos à disposição.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Rastreio Indisponível (Jadlog)": """Olá,\nGostaríamos de tranquilizá-lo(a): seu pedido foi despachado regularmente e segue dentro do prazo de entrega. No momento, o sistema de rastreamento da transportadora apresenta uma instabilidade técnica temporária, impedindo a visualização do status em tempo real.\n\nJá notificamos a transportadora parceira e estamos monitorando o restabelecimento do sistema. Seu pedido continua em movimento normalmente.\n\nAgradecemos a compreensão.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    
     "Solicitação de Fotos e Vídeos (Avaria)": """Olá,\nPedimos sinceras desculpas pelos transtornos causados com a chegada do seu produto. Entendemos sua frustração e queremos resolver isso o mais rápido possível.\n\nPara darmos continuidade ao atendimento e agilizarmos a solução junto ao setor responsável, precisamos que nos envie, por gentileza:\n· Fotos nítidas do produto e da embalagem onde consta a avaria;\n· Um breve vídeo mostrando o detalhe do dano (se possível).\n\nAssim que recebermos as evidências, faremos a análise imediata para prosseguir com as tratativas de resolução.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}"""
 }
 
@@ -189,7 +166,7 @@ modelos_sac = {
 # ==========================================
 def pagina_pendencias():
     st.title("🚚 Pendências Logísticas")
-    st.markdown("Use este painel para gerar mensagens e registrar atendimentos.")
+    st.markdown("Geração de mensagens e registro operacional.")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2], gap="large")
@@ -209,13 +186,12 @@ def pagina_pendencias():
         st.info("Visualização:")
         st.code(texto_final, language="text")
         
-        # BOTÃO PARA SALVAR
+        # BOTÃO PARA SALVAR (Atualizado para "Registrar")
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
-            # AQUI: Não passamos 'colab' para a função de salvar
+        if st.button("✅ Registrar", key="btn_save_pend"):
             salvar_registro("Pendência", opcao, transp)
-            st.success(f"Atendimento '{opcao}' registrado com sucesso!")
+            st.success(f"Atendimento '{opcao}' registrado!")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -223,7 +199,7 @@ def pagina_pendencias():
 # ==========================================
 def pagina_sac():
     st.title("🎧 SAC / Atendimento")
-    st.markdown("Preencha os dados e registre o atendimento.")
+    st.markdown("Geração de respostas rápidas e registro.")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2], gap="large")
@@ -235,54 +211,43 @@ def pagina_sac():
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         st.markdown("---")
         
-        # =========================================
-        #   LÓGICA INTELIGENTE DE CAMPOS (INPUTS)
-        # =========================================
+        # Lógica de Campos (Mantida)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
-            
         elif "Assistência Técnica (Dentro dos 7 dias)" in opcao:
             st.info("🔧 Dados da Assistência")
             dados["{fabricante}"] = st.text_input("Nome da Fabricante:")
             dados["{contato_assistencia}"] = st.text_area("Endereço/Telefone/Infos:")
-            
         elif "Assistência Técnica (Fora dos 7 dias)" in opcao:
             st.info("📅 Dados da Compra")
             dados["{data_compra}"] = st.text_input("Data da Compra:")
             dados["{nota_fiscal}"] = st.text_input("Número da NF:")
             dados["{link_posto}"] = st.text_input("Link do Posto Autorizado:")
-            
         elif "Código Postal" in opcao or "Código Coleta" in opcao:
             st.info("📮 Código de Postagem")
             k = "{codigo_postagem}" if "Código Postal" in opcao else "{codigo_coleta}"
             dados[k] = st.text_input("Código de Coleta/Postagem:")
-            
         elif "Confirmação de Entrega" in opcao:
             st.info("🚚 Dados da Entrega")
             dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_ent_sac")
             dados["{data_entrega}"] = st.text_input("Data da Entrega:")
-            
         elif "Conversão GLP" in opcao:
             st.info("🔥 Dados do Fabricante")
             dados["{fabricante}"] = st.text_input("Nome do Fabricante:")
             dados["{site_fabricante}"] = st.text_input("Site/Contato:")
-            
         elif "Oferecer Desconto" in opcao:
             st.info("💰 Proposta de Valor")
             dados["{valor_desconto}"] = st.text_input("Valor do reembolso (R$):")
-            
         elif "Mercadoria em Trânsito" in opcao:
             st.info("📦 Rastreamento")
             dados["{previsao_entrega}"] = st.text_input("Previsão de Entrega:")
             dados["{link_rastreio}"] = st.text_input("Link de Rastreio:")
             dados["{nota_fiscal}"] = st.text_input("Nota Fiscal:")
             dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_trans_sac")
-            
         elif "Fiscalização" in opcao:
             st.info("🛑 Fiscalização")
             dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_fisc_sac")
-            
         elif "Insucesso na Entrega" in opcao:
             st.info("🏠 Endereço para Confirmar")
             dados["{rua}"] = st.text_input("Rua:")
@@ -297,11 +262,7 @@ def pagina_sac():
     with col2:
         st.subheader("2. Mensagem Pronta")
         texto_cru = modelos_sac[opcao]
-        
-        # 1. Substitui o Colaborador
         texto_final = texto_cru.replace("{colaborador}", colab)
-        
-        # 2. Substitui os campos dinâmicos preenchidos
         for chave, valor in dados.items():
             substituto = valor if valor else "................"
             texto_final = texto_final.replace(chave, substituto)
@@ -309,18 +270,16 @@ def pagina_sac():
         st.info("Visualização:")
         st.code(texto_final, language="text")
 
-        # BOTÃO PARA SALVAR
+        # BOTÃO PARA SALVAR (Atualizado para "Registrar")
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        # Identificar transportadora usada para salvar no relatório
         transp_usada = "-"
         if "{transportadora}" in dados:
             transp_usada = dados["{transportadora}"]
             
-        if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
-            # AQUI: Não passamos 'colab' para a função de salvar
+        if st.button("✅ Registrar", key="btn_save_sac"):
             salvar_registro("SAC", opcao, transp_usada)
-            st.success(f"Atendimento '{opcao}' registrado com sucesso!")
+            st.success(f"Atendimento '{opcao}' registrado!")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -328,11 +287,11 @@ def pagina_sac():
 # ==========================================
 def pagina_dashboard():
     st.title("📊 Dashboard Gerencial")
-    st.markdown("Análise de atendimentos e produtividade (Dados Anônimos).")
+    st.markdown("Visão estratégica dos atendimentos e produtividade.")
     st.markdown("---")
 
     if not os.path.exists(ARQUIVO_DADOS):
-        st.warning("Ainda não há dados registrados. Comece a usar os botões 'Registrar' nas outras abas.")
+        st.warning("Ainda não há dados registrados.")
         return
 
     try:
@@ -341,63 +300,118 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # Filtros
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.subheader("📅 Filtro de Data")
-            df["Data"] = pd.to_datetime(df["Data"])
-            data_min = df["Data"].min().date()
-            data_max = df["Data"].max().date()
-            
-            data_inicial = st.date_input("Data Inicial:", data_min)
-            data_final = st.date_input("Data Final:", data_max)
-
-        # Filtrar DataFrame
+        # --- FILTROS ---
+        st.sidebar.subheader("Filtros do Dashboard")
+        df["Data"] = pd.to_datetime(df["Data"])
+        
+        data_min = df["Data"].min().date()
+        data_max = df["Data"].max().date()
+        
+        c_data1, c_data2 = st.sidebar.columns(2)
+        data_inicial = c_data1.date_input("Início", data_min)
+        data_final = c_data2.date_input("Fim", data_max)
+        
+        # Filtra o DF
         mask = (df["Data"].dt.date >= data_inicial) & (df["Data"].dt.date <= data_final)
         df_filtrado = df.loc[mask]
-
-        st.markdown("---")
         
-        # Métricas Principais
+        if df_filtrado.empty:
+            st.warning("Nenhum dado encontrado para o período selecionado.")
+            return
+
+        # --- KPIs (MÉTRICAS TOPO) ---
         total = len(df_filtrado)
         sac_total = len(df_filtrado[df_filtrado["Setor"] == "SAC"])
         pend_total = len(df_filtrado[df_filtrado["Setor"] == "Pendência"])
+        
+        kpi1, kpi2, kpi3 = st.columns(3)
+        kpi1.metric("Total de Atendimentos", total, border=True)
+        kpi2.metric("SAC", sac_total, border=True)
+        kpi3.metric("Pendências", pend_total, border=True)
 
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Total de Atendimentos", total)
-        m2.metric("SAC", sac_total)
-        m3.metric("Pendências", pend_total)
+        st.markdown("##") # Espaçamento
+
+        # --- GRÁFICOS INTERATIVOS (PLOTLY) ---
+        
+        col_graf1, col_graf2 = st.columns([1, 1])
+
+        with col_graf1:
+            st.subheader("Distribuição por Setor")
+            fig_pizza = px.pie(
+                df_filtrado, 
+                names='Setor', 
+                hole=0.4,
+                color_discrete_sequence=px.colors.sequential.Blues_r
+            )
+            st.plotly_chart(fig_pizza, use_container_width=True)
+            
+        with col_graf2:
+            st.subheader("Evolução Diária")
+            # Agrupa por data para linha do tempo
+            vendas_dia = df_filtrado.groupby(df_filtrado['Data'].dt.date).size().reset_index(name='Atendimentos')
+            fig_linha = px.line(
+                vendas_dia, 
+                x='Data', 
+                y='Atendimentos', 
+                markers=True,
+                line_shape='spline'
+            )
+            fig_linha.update_traces(line_color='#2563eb', line_width=3)
+            st.plotly_chart(fig_linha, use_container_width=True)
 
         st.markdown("---")
 
-        # Gráficos
+        # --- RANKING DE MOTIVOS ---
         c1, c2 = st.columns(2)
         
         with c1:
-            st.subheader("🏆 Motivos mais usados (SAC)")
+            st.subheader("Top Motivos (SAC)")
             df_sac = df_filtrado[df_filtrado["Setor"] == "SAC"]
             if not df_sac.empty:
-                contagem_sac = df_sac["Motivo"].value_counts()
-                st.bar_chart(contagem_sac)
+                top_sac = df_sac['Motivo'].value_counts().reset_index()
+                top_sac.columns = ['Motivo', 'Qtd']
+                fig_bar_sac = px.bar(
+                    top_sac.head(10).sort_values('Qtd', ascending=True), 
+                    x='Qtd', y='Motivo', 
+                    orientation='h',
+                    text='Qtd',
+                    color_discrete_sequence=['#3b82f6']
+                )
+                fig_bar_sac.update_layout(xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(fig_bar_sac, use_container_width=True)
             else:
-                st.info("Sem dados de SAC no período.")
+                st.info("Sem dados.")
 
         with c2:
-            st.subheader("🚚 Motivos mais usados (Pendências)")
+            st.subheader("Top Motivos (Pendências)")
             df_pend = df_filtrado[df_filtrado["Setor"] == "Pendência"]
             if not df_pend.empty:
-                contagem_pend = df_pend["Motivo"].value_counts()
-                st.bar_chart(contagem_pend)
+                top_pend = df_pend['Motivo'].value_counts().reset_index()
+                top_pend.columns = ['Motivo', 'Qtd']
+                fig_bar_pend = px.bar(
+                    top_pend.head(10).sort_values('Qtd', ascending=True), 
+                    x='Qtd', y='Motivo', 
+                    orientation='h', 
+                    text='Qtd',
+                    color_discrete_sequence=['#0ea5e9']
+                )
+                fig_bar_pend.update_layout(xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(fig_bar_pend, use_container_width=True)
             else:
-                st.info("Sem dados de Pendências no período.")
-        
+                st.info("Sem dados.")
+
         st.markdown("---")
-        st.subheader("📋 Detalhamento (Últimos registros)")
-        # Mostra a tabela sem a coluna Colaborador
-        st.dataframe(df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(10), use_container_width=True)
+        st.subheader("📋 Base de Dados (Últimos 50 registros)")
+        
+        # Grid com dados
+        st.dataframe(
+            df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(50),
+            use_container_width=True,
+            hide_index=True
+        )
 
     except Exception as e:
-        st.error(f"Erro ao ler o arquivo de dados: {e}. Sugestão: Apague o arquivo .csv antigo.")
+        st.error(f"Erro no Dashboard: {e}")
 
 # ==========================================
 #           ROTEAMENTO
