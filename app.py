@@ -134,7 +134,7 @@ lista_transportadoras = sorted([
 colaboradores_sac = sorted([
     "Ana Carolina", "Ana Victoria", "Dolores", "Cassia", 
     "Juliana", "Tamara", "Rafaela", "Mylena", 
-    "Isadora", "Lorrayne", "Leticia"
+    "Isadora", "Lorrayne", "Leticia", "Julia"
 ])
 
 # Mensagens Pendências
