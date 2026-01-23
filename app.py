@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-import streamlit.components.v1 as components # Necessário para a cópia automática
+import pytz # Biblioteca para arrumar o horário
+import streamlit.components.v1 as components
 from datetime import datetime
 
 # Configuração da página
@@ -12,8 +13,14 @@ st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wid
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
-#      FUNÇÕES DE BANCO DE DADOS (CSV)
+#      FUNÇÕES DE BANCO DE DADOS E DATA
 # ==========================================
+def obter_data_hora_brasil():
+    """Retorna data e hora atuais no fuso de SP/Brasília"""
+    fuso_br = pytz.timezone('America/Sao_Paulo')
+    agora = datetime.now(fuso_br)
+    return agora
+
 def inicializar_banco():
     if not os.path.exists(ARQUIVO_DADOS):
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Motivo", "Transportadora"])
@@ -21,7 +28,10 @@ def inicializar_banco():
 
 def salvar_registro(setor, motivo, transportadora="-"):
     inicializar_banco()
-    agora = datetime.now()
+    
+    # Pega a hora certa (Brasil)
+    agora = obter_data_hora_brasil()
+    
     nova_linha = {
         "Data": agora.strftime("%Y-%m-%d"),
         "Hora": agora.strftime("%H:%M:%S"),
@@ -40,31 +50,28 @@ def carregar_dados():
     inicializar_banco()
     return pd.read_csv(ARQUIVO_DADOS)
 
+def converter_para_csv(df):
+    """Converte o dataframe para CSV para download"""
+    return df.to_csv(index=False).encode('utf-8')
+
 # ==========================================
-#      MÁGICA DE CÓPIA AUTOMÁTICA (JS)
+#      MÁGICA DE CÓPIA (JavaScript)
 # ==========================================
 def copiar_para_clipboard(texto):
-    # Este script roda no navegador e força a cópia
     texto_escapado = texto.replace('`', '\`').replace('${', '\${')
     js = f"""
     <script>
     function copyToClipboard() {{
         const text = `{texto_escapado}`;
         navigator.clipboard.writeText(text).then(function() {{
-            console.log('Async: Copying to clipboard was successful!');
+            console.log('Cópia realizada com sucesso');
         }}, function(err) {{
-            console.error('Async: Could not copy text: ', err);
-            // Fallback para navegadores antigos
+            // Fallback manual se o navegador bloquear
             const textArea = document.createElement("textarea");
             textArea.value = text;
             document.body.appendChild(textArea);
-            textArea.focus();
             textArea.select();
-            try {{
-                document.execCommand('copy');
-            }} catch (err) {{
-                console.error('Fallback: Oops, unable to copy', err);
-            }}
+            document.execCommand('copy');
             document.body.removeChild(textArea);
         }});
     }}
@@ -74,45 +81,49 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN BLINDADO (CSS)
+#      DESIGN (CSS)
 # ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #1e293b !important; background-color: #f8fafc !important; }
+    
     section[data-testid="stSidebar"] { background-color: #0f172a !important; }
     section[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
+    
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
     
+    /* Estilo dos Cards de Métricas */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* Inputs */
     .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
         background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
     }
     
     .preview-box {
-        background-color: #ffffff;
-        border: 1px dashed #94a3b8;
-        border-radius: 8px;
-        padding: 15px;
-        color: #334155;
-        white-space: pre-wrap;
-        margin-bottom: 15px;
-        font-size: 14px;
+        background-color: #ffffff; border: 1px dashed #94a3b8; border-radius: 8px; padding: 15px;
+        color: #334155; white-space: pre-wrap; margin-bottom: 15px; font-size: 14px;
     }
 
-    /* Botão Registrar e Copiar (Verde) */
+    /* Botão Registrar (Verde) */
     .stButton button {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; 
-        color: white !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; color: white !important;
         border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
         box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
-        font-size: 16px;
     }
     .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-#           NAVEGAÇÃO
+#           MENU LATERAL
 # ==========================================
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
@@ -202,16 +213,17 @@ def pagina_pendencias():
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
-        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         
         # BOTÃO REGISTRAR E COPIAR
+        st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
             salvar_registro("Pendência", opcao, transp)
-            st.success("Registrado!")
+            st.toast("Atendimento registrado!", icon="✅")
             copiar_para_clipboard(texto_final)
-            st.success("Copiado para a área de transferência!")
+            st.success("Copiado! Se não copiou, use a caixa abaixo:")
+            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -287,10 +299,9 @@ def pagina_sac():
             substituto = valor if valor else "................"
             texto_final = texto_final.replace(chave, substituto)
         
-        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
 
-        # BOTÃO REGISTRAR E COPIAR
+        st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         transp_usada = "-"
         if "{transportadora}" in dados:
@@ -298,9 +309,10 @@ def pagina_sac():
             
         if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
             salvar_registro("SAC", opcao, transp_usada)
-            st.success("Registrado!")
+            st.toast("Atendimento registrado!", icon="✅")
             copiar_para_clipboard(texto_final)
-            st.success("Copiado para a área de transferência!")
+            st.success("Copiado! Se não copiou, use a caixa abaixo:")
+            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -320,6 +332,17 @@ def pagina_dashboard():
         if df.empty:
             st.warning("O arquivo de dados está vazio.")
             return
+
+        # BOTÃO DE EXPORTAR
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📥 Exportação")
+        csv = converter_para_csv(df)
+        st.sidebar.download_button(
+            label="Baixar Planilha (Excel)",
+            data=csv,
+            file_name=f'relatorio_atendimentos_{datetime.now().strftime("%d-%m-%Y")}.csv',
+            mime='text/csv',
+        )
 
         st.sidebar.subheader("Filtros")
         df["Data"] = pd.to_datetime(df["Data"])
@@ -350,21 +373,52 @@ def pagina_dashboard():
 
         st.markdown("##")
 
-        col_graf1, col_graf2 = st.columns(2)
-        with col_graf1:
-            st.subheader("Por Setor")
-            fig_pizza = px.pie(df_filtrado, names='Setor', hole=0.4, color_discrete_sequence=px.colors.sequential.Blues_r)
-            st.plotly_chart(fig_pizza, use_container_width=True)
-            
-        with col_graf2:
-            st.subheader("Evolução")
-            vendas_dia = df_filtrado.groupby(df_filtrado['Data'].dt.date).size().reset_index(name='Qtd')
-            fig_linha = px.line(vendas_dia, x='Data', y='Qtd', markers=True)
-            fig_linha.update_traces(line_color='#2563eb')
-            st.plotly_chart(fig_linha, use_container_width=True)
+        # GRÁFICOS DE BARRAS POR MOTIVO
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("📊 Motivos - SAC")
+            df_sac = df_filtrado[df_filtrado["Setor"] == "SAC"]
+            if not df_sac.empty:
+                # Contagem
+                contagem = df_sac['Motivo'].value_counts().reset_index()
+                contagem.columns = ['Motivo', 'Quantidade']
+                # Gráfico de Barras Horizontal
+                fig_sac = px.bar(
+                    contagem.sort_values('Quantidade', ascending=True),
+                    x='Quantidade', 
+                    y='Motivo',
+                    orientation='h',
+                    text='Quantidade',
+                    color_discrete_sequence=['#3b82f6']
+                )
+                fig_sac.update_layout(xaxis_title=None, yaxis_title=None, height=400)
+                st.plotly_chart(fig_sac, use_container_width=True)
+            else:
+                st.info("Sem dados de SAC.")
+
+        with c2:
+            st.subheader("📊 Motivos - Pendências")
+            df_pend = df_filtrado[df_filtrado["Setor"] == "Pendência"]
+            if not df_pend.empty:
+                # Contagem
+                contagem_p = df_pend['Motivo'].value_counts().reset_index()
+                contagem_p.columns = ['Motivo', 'Quantidade']
+                # Gráfico de Barras Horizontal
+                fig_pend = px.bar(
+                    contagem_p.sort_values('Quantidade', ascending=True),
+                    x='Quantidade', 
+                    y='Motivo',
+                    orientation='h',
+                    text='Quantidade',
+                    color_discrete_sequence=['#0ea5e9']
+                )
+                fig_pend.update_layout(xaxis_title=None, yaxis_title=None, height=400)
+                st.plotly_chart(fig_pend, use_container_width=True)
+            else:
+                st.info("Sem dados de Pendências.")
 
         st.markdown("---")
-        st.subheader("Últimos Registros")
+        st.subheader("📋 Base de Dados (Últimos 50 registros)")
         st.dataframe(df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
 
     except Exception as e:
