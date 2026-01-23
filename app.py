@@ -10,7 +10,7 @@ from datetime import datetime
 # Configuração da página
 st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wide")
 
-# Nome do arquivo de dados (Banco de dados interno)
+# Nome do arquivo de dados
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
@@ -22,35 +22,41 @@ def obter_data_hora_brasil():
 
 def inicializar_banco():
     if not os.path.exists(ARQUIVO_DADOS):
-        df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Motivo", "Transportadora"])
-        df.to_csv(ARQUIVO_DADOS, index=False)
+        # ADICIONADO "Colaborador" e ajustado formato
+        df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
+        df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
 
-def salvar_registro(setor, motivo, transportadora="-"):
+def salvar_registro(setor, colaborador, motivo, transportadora="-"):
     inicializar_banco()
     agora = obter_data_hora_brasil()
+    
     nova_linha = {
-        "Data": agora.strftime("%Y-%m-%d"),
+        "Data": agora.strftime("%d/%m/%Y"), # Salva como DD/MM/AAAA
         "Hora": agora.strftime("%H:%M:%S"),
         "Setor": setor,
+        "Colaborador": colaborador, # Agora salvamos o nome!
         "Motivo": motivo,
         "Transportadora": transportadora
     }
+    
     try:
-        df = pd.read_csv(ARQUIVO_DADOS)
+        # Lê com ponto e vírgula
+        df = pd.read_csv(ARQUIVO_DADOS, sep=';', encoding='utf-8-sig')
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
-        df.to_csv(ARQUIVO_DADOS, index=False)
+        # Salva com ponto e vírgula
+        df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
+        st.error(f"Erro ao salvar: {e}. Apague o arquivo .csv antigo e tente novamente.")
 
 def carregar_dados():
     inicializar_banco()
-    return pd.read_csv(ARQUIVO_DADOS)
+    try:
+        return pd.read_csv(ARQUIVO_DADOS, sep=';', encoding='utf-8-sig')
+    except:
+        return pd.DataFrame()
 
 def converter_para_excel_csv(df):
-    """
-    Converte para CSV com separador de PONTO E VÍRGULA (;)
-    e codificação UTF-8-SIG (Para o Excel ler acentos e colunas certo)
-    """
+    """CSV com ponto e vírgula para Excel Brasileiro"""
     return df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
 
 # ==========================================
@@ -100,6 +106,7 @@ st.markdown("""
         color: white !important;
         border: 1px solid #1d4ed8 !important;
         font-weight: bold !important;
+        width: 100%;
     }
     .stDownloadButton button:hover { background-color: #1e40af !important; }
 
@@ -141,15 +148,13 @@ st.sidebar.markdown("---")
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
-colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
+colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
-#      MENSAGENS PENDÊNCIAS (ATUALIZADO)
+#      MENSAGENS PENDÊNCIAS
 # ==========================================
 modelos_pendencias = {
-    # MENSAGEM AUSENTE ATUALIZADA
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua: \nNúmero: \nBairro: \nCEP: \nCidade: \nEstado: \nPonto de Referência: \nRecebedor: \nTelefone: \n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
-    
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
     "Endereço Não Localizado": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria, porém, não localizou o endereço.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo:\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nAtenciosamente,\n{colaborador}""",
     "Área de Risco": """Olá, prezado cliente! Tudo bem? Espero que sim!\n\nA transportadora {transportadora}, informou que está com dificuldades para realizar a entrega no endereço cadastrado no portal. Dessa forma, peço por gentileza que nos informe um endereço alternativo e também telefones ativos para melhor comunicação.\n\nCaso não possua um outro endereço, sua mercadoria ficará disponível para retirada da base da transportadora.\n\nQualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
@@ -163,9 +168,6 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
-# ==========================================
-#      MENSAGENS SAC
-# ==========================================
 modelos_sac = {
     "Solicitação de Coleta": """Olá,\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "Barrar Entrega na Transportadora": """Olá,\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -227,7 +229,8 @@ def pagina_pendencias():
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_pend"):
-            salvar_registro("Pendência", opcao, transp)
+            # AQUI PASSAMOS O NOME DO COLABORADOR
+            salvar_registro("Pendência", colab, opcao, transp)
             st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
@@ -250,7 +253,7 @@ def pagina_sac():
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         st.markdown("---")
         
-        # Lógica de Campos (Mantida)
+        # Lógica de Campos (Simplificada)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -315,7 +318,8 @@ def pagina_sac():
             transp_usada = dados["{transportadora}"]
             
         if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_sac"):
-            salvar_registro("SAC", opcao, transp_usada)
+            # AQUI PASSAMOS O NOME DO COLABORADOR
+            salvar_registro("SAC", colab, opcao, transp_usada)
             st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
@@ -339,28 +343,49 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # BOTÃO EXCEL COM FORMATO PONTO E VÍRGULA
+        # --- SEÇÃO DE EXPORTAÇÃO COM FILTROS ---
         st.sidebar.markdown("---")
-        st.sidebar.subheader("📥 Exportação")
-        csv = converter_para_excel_csv(df)
+        st.sidebar.subheader("📥 Exportação Excel")
+        
+        # Filtro de Exportação (NOVO)
+        tipo_export = st.sidebar.selectbox("Filtrar planilha por:", ["Geral (Todos)", "Apenas SAC", "Apenas Pendências"])
+        
+        df_export = df.copy()
+        
+        # Lógica do Filtro
+        if tipo_export == "Apenas SAC":
+            df_export = df_export[df_export["Setor"] == "SAC"]
+        elif tipo_export == "Apenas Pendências":
+            df_export = df_export[df_export["Setor"] == "Pendência"]
+            
+        csv = converter_para_excel_csv(df_export)
+        
+        # Nome do arquivo muda conforme o filtro
+        nome_arquivo = f'relatorio_{tipo_export.split()[0].lower()}_{datetime.now().strftime("%d-%m-%Y")}.csv'
+        
         st.sidebar.download_button(
-            label="Baixar Excel (.csv)",
+            label=f"Baixar Planilha ({tipo_export})",
             data=csv,
-            file_name=f'relatorio_atendimentos_{datetime.now().strftime("%d-%m-%Y")}.csv',
+            file_name=nome_arquivo,
             mime='text/csv',
         )
 
-        st.sidebar.subheader("Filtros")
-        df["Data"] = pd.to_datetime(df["Data"])
+        # --- FILTROS VISUAIS DO DASHBOARD ---
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Filtros do Painel")
         
-        data_min = df["Data"].min().date()
-        data_max = df["Data"].max().date()
+        # Convertendo para data para filtrar (Lembrando que salvamos como string DD/MM/YYYY)
+        # Precisamos converter de volta para datetime para filtrar
+        df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
+        
+        data_min = df["Data_Filtro"].min().date()
+        data_max = df["Data_Filtro"].max().date()
         
         c_data1, c_data2 = st.sidebar.columns(2)
         data_inicial = c_data1.date_input("Início", data_min)
         data_final = c_data2.date_input("Fim", data_max)
         
-        mask = (df["Data"].dt.date >= data_inicial) & (df["Data"].dt.date <= data_final)
+        mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
         df_filtrado = df.loc[mask]
         
         if df_filtrado.empty:
@@ -387,7 +412,14 @@ def pagina_dashboard():
             if not df_sac.empty:
                 contagem = df_sac['Motivo'].value_counts().reset_index()
                 contagem.columns = ['Motivo', 'Quantidade']
-                fig_sac = px.bar(contagem.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#3b82f6'])
+                fig_sac = px.bar(
+                    contagem.sort_values('Quantidade', ascending=True),
+                    x='Quantidade', 
+                    y='Motivo',
+                    orientation='h',
+                    text='Quantidade',
+                    color_discrete_sequence=['#3b82f6']
+                )
                 fig_sac.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
@@ -399,7 +431,14 @@ def pagina_dashboard():
             if not df_pend.empty:
                 contagem_p = df_pend['Motivo'].value_counts().reset_index()
                 contagem_p.columns = ['Motivo', 'Quantidade']
-                fig_pend = px.bar(contagem_p.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#0ea5e9'])
+                fig_pend = px.bar(
+                    contagem_p.sort_values('Quantidade', ascending=True),
+                    x='Quantidade', 
+                    y='Motivo',
+                    orientation='h',
+                    text='Quantidade',
+                    color_discrete_sequence=['#0ea5e9']
+                )
                 fig_pend.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_pend, use_container_width=True)
             else:
@@ -407,10 +446,12 @@ def pagina_dashboard():
 
         st.markdown("---")
         st.subheader("📋 Base de Dados (Últimos 50 registros)")
-        st.dataframe(df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
+        # Remove a coluna auxiliar de filtro antes de mostrar
+        df_show = df_filtrado.drop(columns=["Data_Filtro"], errors='ignore')
+        st.dataframe(df_show.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
 
     except Exception as e:
-        st.error(f"Erro no Dashboard: {e}")
+        st.error(f"Erro no Dashboard: {e}. Tente apagar o arquivo .csv antigo.")
 
 # ==========================================
 #           ROTEAMENTO
