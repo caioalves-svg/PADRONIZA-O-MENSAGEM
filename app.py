@@ -2,24 +2,23 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-import pytz # Biblioteca para arrumar o horário
+import pytz
+import json  # Importante para corrigir o erro de cópia
 import streamlit.components.v1 as components
 from datetime import datetime
 
 # Configuração da página
 st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wide")
 
-# Nome do arquivo onde os dados serão salvos
+# Nome do arquivo de dados
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
-#      FUNÇÕES DE BANCO DE DADOS E DATA
+#      FUNÇÕES DE BANCO DE DADOS
 # ==========================================
 def obter_data_hora_brasil():
-    """Retorna data e hora atuais no fuso de SP/Brasília"""
     fuso_br = pytz.timezone('America/Sao_Paulo')
-    agora = datetime.now(fuso_br)
-    return agora
+    return datetime.now(fuso_br)
 
 def inicializar_banco():
     if not os.path.exists(ARQUIVO_DADOS):
@@ -28,10 +27,7 @@ def inicializar_banco():
 
 def salvar_registro(setor, motivo, transportadora="-"):
     inicializar_banco()
-    
-    # Pega a hora certa (Brasil)
     agora = obter_data_hora_brasil()
-    
     nova_linha = {
         "Data": agora.strftime("%Y-%m-%d"),
         "Hora": agora.strftime("%H:%M:%S"),
@@ -44,36 +40,52 @@ def salvar_registro(setor, motivo, transportadora="-"):
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
         df.to_csv(ARQUIVO_DADOS, index=False)
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}. Tente apagar o arquivo CSV antigo.")
+        st.error(f"Erro ao salvar: {e}")
 
 def carregar_dados():
     inicializar_banco()
     return pd.read_csv(ARQUIVO_DADOS)
 
 def converter_para_csv(df):
-    """Converte o dataframe para CSV para download"""
     return df.to_csv(index=False).encode('utf-8')
 
 # ==========================================
-#      MÁGICA DE CÓPIA (JavaScript)
+#      MÁGICA DE CÓPIA CORRIGIDA (JS)
 # ==========================================
 def copiar_para_clipboard(texto):
-    texto_escapado = texto.replace('`', '\`').replace('${', '\${')
+    # Serializa o texto para JSON para evitar erros com quebras de linha
+    texto_json = json.dumps(texto)
+    
     js = f"""
     <script>
     function copyToClipboard() {{
-        const text = `{texto_escapado}`;
-        navigator.clipboard.writeText(text).then(function() {{
-            console.log('Cópia realizada com sucesso');
-        }}, function(err) {{
-            // Fallback manual se o navegador bloquear
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-        }});
+        const text = {texto_json}; // O texto vem tratado do Python
+        
+        // Cria um elemento de texto temporário
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Garante que o elemento não seja visível na tela mas esteja acessível
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        
+        textArea.focus();
+        textArea.select();
+        
+        try {{
+            const successful = document.execCommand('copy');
+            if(successful) {{
+                console.log('Texto copiado com sucesso!');
+            }} else {{
+                console.log('Falha ao copiar.');
+            }}
+        }} catch (err) {{
+            console.error('Erro ao copiar', err);
+        }}
+        
+        document.body.removeChild(textArea);
     }}
     copyToClipboard();
     </script>
@@ -93,15 +105,24 @@ st.markdown("""
     
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
     
-    /* Estilo dos Cards de Métricas */
-    div[data-testid="stMetric"] {
-        background-color: #ffffff;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    /* Correção do Botão de Download (Excel) */
+    [data-testid="stDownloadButton"] button {
+        background-color: #3b82f6 !important; /* Azul forte */
+        color: white !important;
+        border: none !important;
+        padding: 0.6rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        font-weight: 600;
     }
-    
+    [data-testid="stDownloadButton"] button:hover {
+        background-color: #2563eb !important;
+        box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+    }
+    [data-testid="stDownloadButton"] button:active {
+        background-color: #1d4ed8 !important;
+    }
+
     /* Inputs */
     .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
         background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
@@ -113,12 +134,15 @@ st.markdown("""
     }
 
     /* Botão Registrar (Verde) */
-    .stButton button {
+    .botao-registrar .stButton button {
         background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; color: white !important;
         border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
         box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
     }
-    .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
+    .botao-registrar .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
+    
+    /* Esconder o container do componente HTML de cópia */
+    iframe { display: none; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -140,7 +164,7 @@ lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRO
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
-#      MENSAGENS (Dicionários)
+#      MENSAGENS (Scripts)
 # ==========================================
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
@@ -213,6 +237,7 @@ def pagina_pendencias():
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
+        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         
         # BOTÃO REGISTRAR E COPIAR
@@ -222,8 +247,6 @@ def pagina_pendencias():
             salvar_registro("Pendência", opcao, transp)
             st.toast("Atendimento registrado!", icon="✅")
             copiar_para_clipboard(texto_final)
-            st.success("Copiado! Se não copiou, use a caixa abaixo:")
-            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -299,9 +322,10 @@ def pagina_sac():
             substituto = valor if valor else "................"
             texto_final = texto_final.replace(chave, substituto)
         
+        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
 
-        st.write("")
+        # BOTÃO REGISTRAR E COPIAR
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         transp_usada = "-"
         if "{transportadora}" in dados:
@@ -311,8 +335,6 @@ def pagina_sac():
             salvar_registro("SAC", opcao, transp_usada)
             st.toast("Atendimento registrado!", icon="✅")
             copiar_para_clipboard(texto_final)
-            st.success("Copiado! Se não copiou, use a caixa abaixo:")
-            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -333,7 +355,7 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # BOTÃO DE EXPORTAR
+        # BOTÃO DE EXPORTAR (COM CORREÇÃO DE CSS)
         st.sidebar.markdown("---")
         st.sidebar.subheader("📥 Exportação")
         csv = converter_para_csv(df)
@@ -373,49 +395,46 @@ def pagina_dashboard():
 
         st.markdown("##")
 
-        # GRÁFICOS DE BARRAS POR MOTIVO
+        col_graf1, col_graf2 = st.columns(2)
+        with col_graf1:
+            st.subheader("Por Setor")
+            fig_pizza = px.pie(df_filtrado, names='Setor', hole=0.4, color_discrete_sequence=px.colors.sequential.Blues_r)
+            st.plotly_chart(fig_pizza, use_container_width=True)
+            
+        with col_graf2:
+            st.subheader("Evolução")
+            vendas_dia = df_filtrado.groupby(df_filtrado['Data'].dt.date).size().reset_index(name='Qtd')
+            fig_linha = px.line(vendas_dia, x='Data', y='Qtd', markers=True)
+            fig_linha.update_traces(line_color='#2563eb')
+            st.plotly_chart(fig_linha, use_container_width=True)
+
+        st.markdown("---")
+
+        # --- RANKING ---
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("📊 Motivos - SAC")
+            st.subheader("Top Motivos (SAC)")
             df_sac = df_filtrado[df_filtrado["Setor"] == "SAC"]
             if not df_sac.empty:
-                # Contagem
-                contagem = df_sac['Motivo'].value_counts().reset_index()
-                contagem.columns = ['Motivo', 'Quantidade']
-                # Gráfico de Barras Horizontal
-                fig_sac = px.bar(
-                    contagem.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#3b82f6']
-                )
-                fig_sac.update_layout(xaxis_title=None, yaxis_title=None, height=400)
-                st.plotly_chart(fig_sac, use_container_width=True)
+                top_sac = df_sac['Motivo'].value_counts().reset_index()
+                top_sac.columns = ['Motivo', 'Qtd']
+                fig_bar_sac = px.bar(top_sac.head(10).sort_values('Qtd', ascending=True), x='Qtd', y='Motivo', orientation='h', text='Qtd', color_discrete_sequence=['#3b82f6'])
+                fig_bar_sac.update_layout(xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(fig_bar_sac, use_container_width=True)
             else:
-                st.info("Sem dados de SAC.")
+                st.info("Sem dados.")
 
         with c2:
-            st.subheader("📊 Motivos - Pendências")
+            st.subheader("Top Motivos (Pendências)")
             df_pend = df_filtrado[df_filtrado["Setor"] == "Pendência"]
             if not df_pend.empty:
-                # Contagem
-                contagem_p = df_pend['Motivo'].value_counts().reset_index()
-                contagem_p.columns = ['Motivo', 'Quantidade']
-                # Gráfico de Barras Horizontal
-                fig_pend = px.bar(
-                    contagem_p.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#0ea5e9']
-                )
-                fig_pend.update_layout(xaxis_title=None, yaxis_title=None, height=400)
-                st.plotly_chart(fig_pend, use_container_width=True)
+                top_pend = df_pend['Motivo'].value_counts().reset_index()
+                top_pend.columns = ['Motivo', 'Qtd']
+                fig_bar_pend = px.bar(top_pend.head(10).sort_values('Qtd', ascending=True), x='Qtd', y='Motivo', orientation='h', text='Qtd', color_discrete_sequence=['#0ea5e9'])
+                fig_bar_pend.update_layout(xaxis_title=None, yaxis_title=None)
+                st.plotly_chart(fig_bar_pend, use_container_width=True)
             else:
-                st.info("Sem dados de Pendências.")
+                st.info("Sem dados.")
 
         st.markdown("---")
         st.subheader("📋 Base de Dados (Últimos 50 registros)")
