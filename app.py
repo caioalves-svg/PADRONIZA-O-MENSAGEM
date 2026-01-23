@@ -5,33 +5,93 @@ import os
 st.set_page_config(page_title="Sistema Integrado", page_icon="🚀", layout="wide")
 
 # ==========================================
-#      CARREGAR O DESIGN (CSS)
+#      DESIGN BLINDADO (CSS ANTI-BUG)
 # ==========================================
-def carregar_css(nome_arquivo):
-    with open(nome_arquivo) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+# Este CSS garante que o visual fique perfeito mesmo em computadores com Modo Escuro
+st.markdown("""
+<style>
+    /* 1. IMPORTANDO FONTE MODERNA */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-# Verifica se o arquivo existe e carrega
-if os.path.exists("style.css"):
-    carregar_css("style.css")
-else:
-    # CSS de emergência caso o arquivo não seja encontrado
-    st.markdown("""
-    <style>
-        .stApp { background-color: #f1f5f9; }
-        .stButton button { background-color: #2563eb; color: white; border-radius: 8px; }
-        /* Estilo para o bloco de cópia ficar bonito (branco e limpo) */
-        .stCodeBlock {
-            background-color: #ffffff !important;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-        pre {
-            background-color: #ffffff !important; /* Força fundo branco */
-        }
-    </style>
-    """, unsafe_allow_html=True)
+    /* 2. FORÇAR CORES (Mesmo se o PC estiver em modo escuro) */
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+        color: #1e293b !important; /* Força texto cinza escuro */
+        background-color: #f1f5f9 !important; /* Força fundo claro */
+    }
+
+    /* 3. BARRA LATERAL */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a !important; /* Fundo escuro */
+    }
+    /* Texto da barra lateral sempre branco */
+    section[data-testid="stSidebar"] * {
+        color: #f8fafc !important;
+    }
+
+    /* 4. TÍTULOS */
+    h1, h2, h3 {
+        color: #1e40af !important; /* Azul Royal */
+    }
+
+    /* 5. CAIXAS DE SELEÇÃO E TEXTO */
+    .stSelectbox div[data-baseweb="select"] > div, 
+    .stTextArea textarea {
+        background-color: #ffffff !important;
+        color: #000000 !important; /* Texto preto forçado */
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+    }
+    
+    /* Garante que o texto dentro do dropdown seja legível */
+    ul[data-baseweb="menu"] li {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    /* 6. CAIXA DE CÓPIA (A CORREÇÃO PRINCIPAL) */
+    /* Isso arruma o bug de "letra branca no fundo branco" */
+    .stCodeBlock {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+    }
+    .stCodeBlock pre {
+        background-color: #ffffff !important;
+    }
+    .stCodeBlock code {
+        color: #000000 !important; /* Texto do código preto */
+        font-family: 'Inter', sans-serif !important;
+        white-space: pre-wrap !important; /* Quebra linha se for muito longo */
+    }
+    /* Remove cores estranhas de sintaxe do Streamlit */
+    .stCodeBlock span {
+        color: #000000 !important;
+    }
+
+    /* 7. BOTÕES */
+    .stButton button {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        color: white !important;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        width: 100%;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 10px rgba(0,0,0,0.2);
+    }
+    
+    /* Pequenos ajustes */
+    label {
+        color: #475569 !important;
+        font-weight: 600;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================================
 #           MENU LATERAL
@@ -51,7 +111,7 @@ pagina_escolhida = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 <div style="text-align: center; color: #94a3b8; font-size: 12px;">
-    Engage Eletro<br>Sistema Interno v3.0
+    Engage Eletro<br>Sistema Interno v4.0 (Dark Mode Fix)
 </div>
 """, unsafe_allow_html=True)
 
