@@ -1,7 +1,33 @@
 import streamlit as st
+import os
 
 # Configuração da página
 st.set_page_config(page_title="Sistema Integrado", page_icon="🏢", layout="wide")
+
+# ==========================================
+#           MENU LATERAL (COM LOGO)
+# ==========================================
+st.sidebar.title("Navegação")
+
+# --- TENTA MOSTRAR A LOGO ---
+# Certifique-se de que o nome do arquivo aqui seja IGUAL ao que você subiu no GitHub
+# Pode ser "logo.png", "logo.jpg", "imagem.jpeg", etc.
+nome_do_arquivo_logo = "logo.png" 
+
+if os.path.exists(nome_do_arquivo_logo):
+    st.sidebar.image(nome_do_arquivo_logo, use_container_width=True)
+else:
+    # Se não achar a imagem, não faz nada (não trava o site)
+    pass
+
+st.sidebar.markdown("Selecione o departamento:")
+
+pagina_escolhida = st.sidebar.radio(
+    "Ir para:",
+    ("Pendências Logísticas", "SAC / Atendimento")
+)
+st.sidebar.markdown("---")
+st.sidebar.caption("Sistema Interno - Engage Eletro")
 
 # ==========================================
 #      DADOS DO SETOR DE PENDÊNCIAS
@@ -19,7 +45,6 @@ lista_transportadoras = sorted([
     "TJB", "TOTAL", "TRILOG"
 ])
 
-# Mensagens de Pendências (Mantive as originais que você já tinha)
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -443,15 +468,8 @@ def pagina_sac():
             st.success("Copiado!")
 
 # ==========================================
-#           MENU LATERAL
+#           ROTEAMENTO (PÁGINA ESCOLHIDA)
 # ==========================================
-st.sidebar.title("Navegação")
-st.sidebar.markdown("Selecione o departamento:")
-
-pagina_escolhida = st.sidebar.radio(
-    "Ir para:",
-    ("Pendências Logísticas", "SAC / Atendimento")
-)
 
 if pagina_escolhida == "Pendências Logísticas":
     pagina_pendencias()
