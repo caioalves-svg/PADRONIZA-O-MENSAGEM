@@ -100,7 +100,7 @@ st.markdown("""
         border-right: 1px solid #e2e8f0;
     }
     
-    /* Texto da Barra Lateral (Escuro para contraste) */
+    /* Texto da Barra Lateral */
     section[data-testid="stSidebar"] p, 
     section[data-testid="stSidebar"] span,
     section[data-testid="stSidebar"] label,
@@ -108,13 +108,9 @@ st.markdown("""
         color: #334155 !important;
     }
     
-    /* Títulos */
-    h1, h2, h3 {
-        color: #0f172a !important;
-        font-weight: 700;
-    }
+    h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
 
-    /* Cards (Caixas Brancas do conteúdo) */
+    /* Cards (Caixas Brancas) */
     .css-card {
         background-color: #ffffff;
         padding: 2rem;
@@ -124,18 +120,17 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
-    /* Inputs (Campos de texto/seleção) */
+    /* Inputs - Borda reforçada */
     .stSelectbox div[data-baseweb="select"] > div, 
     .stTextInput input, 
     .stDateInput input,
     .stTextArea textarea {
         background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
+        border: 1px solid #94a3b8 !important;
         border-radius: 8px !important;
         color: #1e293b !important;
     }
     
-    /* Caixa de Preview da Mensagem */
     .preview-box {
         background-color: #f1f5f9;
         border-left: 5px solid #3b82f6;
@@ -147,15 +142,11 @@ st.markdown("""
         font-size: 14px;
     }
 
-    /* Botão Registrar (Verde) */
+    /* Botão Registrar */
     .botao-registrar .stButton button {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
         color: white !important;
-        border: none;
-        padding: 0.8rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        width: 100%;
+        border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; width: 100%;
         box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
     }
     .botao-registrar .stButton button:hover {
@@ -163,7 +154,7 @@ st.markdown("""
         box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3);
     }
 
-    /* Botão Download (Azul) */
+    /* Botão Download */
     .stDownloadButton button {
         background-color: #3b82f6 !important;
         color: white !important;
@@ -172,11 +163,8 @@ st.markdown("""
         font-weight: 600;
         width: 100%;
     }
-    .stDownloadButton button:hover {
-        background-color: #2563eb !important;
-    }
+    .stDownloadButton button:hover { background-color: #2563eb !important; }
     
-    /* Ajustes Gerais */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
@@ -436,8 +424,9 @@ def pagina_dashboard():
         data_max = df["Data_Filtro"].max().date()
         
         c_data1, c_data2 = st.sidebar.columns(2)
-        data_inicial = c_data1.date_input("Início", data_min)
-        data_final = c_data2.date_input("Fim", data_max)
+        # FORMATO BRASILEIRO NO FILTRO
+        data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
+        data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
         
         mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
         df_filtrado = df.loc[mask]
