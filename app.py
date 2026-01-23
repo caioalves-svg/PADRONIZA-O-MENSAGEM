@@ -8,7 +8,7 @@ import streamlit.components.v1 as components
 from datetime import datetime
 
 # Configuração da página
-st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Sistema Integrado", page_icon="✨", layout="wide")
 
 # Nome do arquivo de dados
 ARQUIVO_DADOS = "historico_atendimentos.csv"
@@ -22,7 +22,6 @@ def obter_data_hora_brasil():
 
 def inicializar_banco():
     if not os.path.exists(ARQUIVO_DADOS):
-        # ADICIONADO "Colaborador" e ajustado formato
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
 
@@ -31,22 +30,20 @@ def salvar_registro(setor, colaborador, motivo, transportadora="-"):
     agora = obter_data_hora_brasil()
     
     nova_linha = {
-        "Data": agora.strftime("%d/%m/%Y"), # Salva como DD/MM/AAAA
+        "Data": agora.strftime("%d/%m/%Y"),
         "Hora": agora.strftime("%H:%M:%S"),
         "Setor": setor,
-        "Colaborador": colaborador, # Agora salvamos o nome!
+        "Colaborador": colaborador,
         "Motivo": motivo,
         "Transportadora": transportadora
     }
     
     try:
-        # Lê com ponto e vírgula
         df = pd.read_csv(ARQUIVO_DADOS, sep=';', encoding='utf-8-sig')
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
-        # Salva com ponto e vírgula
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}. Apague o arquivo .csv antigo e tente novamente.")
+        st.error(f"Erro ao salvar: {e}. Tente apagar o arquivo .csv antigo.")
 
 def carregar_dados():
     inicializar_banco()
@@ -56,7 +53,6 @@ def carregar_dados():
         return pd.DataFrame()
 
 def converter_para_excel_csv(df):
-    """CSV com ponto e vírgula para Excel Brasileiro"""
     return df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
 
 # ==========================================
@@ -77,9 +73,7 @@ def copiar_para_clipboard(texto):
         textArea.select();
         try {{
             document.execCommand('copy');
-        }} catch (err) {{
-            console.error('Erro ao copiar', err);
-        }}
+        }} catch (err) {{}}
         document.body.removeChild(textArea);
     }}
     copyToClipboard();
@@ -88,48 +82,104 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN (CSS)
+#      DESIGN CLEAN (SIDEBAR BRANCA)
 # ==========================================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #1e293b !important; background-color: #f8fafc !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    section[data-testid="stSidebar"] { background-color: #0f172a !important; }
-    section[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
-    
-    h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
-    
-    /* Botão de Download (Azul) */
-    .stDownloadButton button {
-        background-color: #2563eb !important;
-        color: white !important;
-        border: 1px solid #1d4ed8 !important;
-        font-weight: bold !important;
-        width: 100%;
+    /* Fundo Geral */
+    .stApp {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
     }
-    .stDownloadButton button:hover { background-color: #1e40af !important; }
 
-    /* Inputs */
-    .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
-        background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
+    /* BARRA LATERAL (BRANCA) */
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0;
     }
     
+    /* Texto da Barra Lateral (Escuro para contraste) */
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] div {
+        color: #334155 !important;
+    }
+    
+    /* Títulos */
+    h1, h2, h3 {
+        color: #0f172a !important;
+        font-weight: 700;
+    }
+
+    /* Cards (Caixas Brancas do conteúdo) */
+    .css-card {
+        background-color: #ffffff;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+
+    /* Inputs (Campos de texto/seleção) */
+    .stSelectbox div[data-baseweb="select"] > div, 
+    .stTextInput input, 
+    .stDateInput input,
+    .stTextArea textarea {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        color: #1e293b !important;
+    }
+    
+    /* Caixa de Preview da Mensagem */
     .preview-box {
-        background-color: #ffffff; border: 1px dashed #94a3b8; border-radius: 8px; padding: 15px;
-        color: #334155; white-space: pre-wrap; margin-bottom: 15px; font-size: 14px;
+        background-color: #f1f5f9;
+        border-left: 5px solid #3b82f6;
+        border-radius: 4px;
+        padding: 20px;
+        color: #334155;
+        white-space: pre-wrap;
+        margin-top: 10px;
+        font-size: 14px;
     }
 
     /* Botão Registrar (Verde) */
     .botao-registrar .stButton button {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; color: white !important;
-        border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
-        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        color: white !important;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
     }
-    .botao-registrar .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
+    .botao-registrar .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Botão Download (Azul) */
+    .stDownloadButton button {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+    }
+    .stDownloadButton button:hover {
+        background-color: #2563eb !important;
+    }
     
-    /* Caixa de Código */
-    .stCodeBlock { background-color: #f0fdf4 !important; border: 1px solid #86efac !important; border-radius: 8px; }
+    /* Ajustes Gerais */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
 </style>
 """, unsafe_allow_html=True)
 
@@ -137,10 +187,15 @@ st.markdown("""
 #           MENU LATERAL
 # ==========================================
 if os.path.exists("logo.png"):
-    st.sidebar.image("logo.png", use_container_width=True)
+    st.sidebar.image("logo.png", width=180)
+    st.sidebar.markdown("##")
 
-st.sidebar.title("Navegação")
-pagina_escolhida = st.sidebar.radio("Ir para:", ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"))
+st.sidebar.caption("MENU PRINCIPAL")
+pagina_escolhida = st.sidebar.radio(
+    "Navegação:",
+    ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"),
+    label_visibility="collapsed"
+)
 st.sidebar.markdown("---")
 
 # ==========================================
@@ -148,7 +203,7 @@ st.sidebar.markdown("---")
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
-colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
+colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
 #      MENSAGENS PENDÊNCIAS
@@ -207,20 +262,24 @@ modelos_sac = {
 # ==========================================
 def pagina_pendencias():
     st.title("🚚 Pendências Logísticas")
-    st.markdown("Use este painel para gerar mensagens e registrar atendimentos.")
     st.markdown("---")
     
-    col1, col2 = st.columns([1, 2], gap="large")
+    col1, col2 = st.columns([1, 1.5], gap="medium")
     
     with col1:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
+        
+        st.markdown("---")
+        st.subheader("2. Motivo")
+        opcao = st.selectbox("Selecione o caso:", list(modelos_pendencias.keys()), key="msg_p")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.subheader("2. Mensagem")
-        opcao = st.selectbox("Qual o motivo do contato?", list(modelos_pendencias.keys()), key="msg_p")
-        
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
+        st.subheader("3. Visualização")
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
@@ -228,12 +287,12 @@ def pagina_pendencias():
         
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_pend"):
-            # AQUI PASSAMOS O NOME DO COLABORADOR
+        if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
             salvar_registro("Pendência", colab, opcao, transp)
-            st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
+            st.toast("Registrado com sucesso!", icon="✨")
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -241,19 +300,18 @@ def pagina_pendencias():
 # ==========================================
 def pagina_sac():
     st.title("🎧 SAC / Atendimento")
-    st.markdown("Preencha os dados e registre o atendimento.")
     st.markdown("---")
     
-    col1, col2 = st.columns([1, 2], gap="large")
+    col1, col2 = st.columns([1, 1.5], gap="medium")
     dados = {}
     
     with col1:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
-        st.markdown("---")
         
-        # Lógica de Campos (Simplificada)
+        # Campos Dinâmicos (Mantidos)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -300,9 +358,11 @@ def pagina_sac():
             dados["{estado}"] = st.text_input("Estado:")
             dados["{complemento}"] = st.text_input("Complemento (opcional):", value="")
             dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.subheader("2. Mensagem Pronta")
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
+        st.subheader("2. Visualização")
         texto_cru = modelos_sac[opcao]
         texto_final = texto_cru.replace("{colaborador}", colab)
         for chave, valor in dados.items():
@@ -317,12 +377,12 @@ def pagina_sac():
         if "{transportadora}" in dados:
             transp_usada = dados["{transportadora}"]
             
-        if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_sac"):
-            # AQUI PASSAMOS O NOME DO COLABORADOR
+        if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
             salvar_registro("SAC", colab, opcao, transp_usada)
-            st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
+            st.toast("Registrado com sucesso!", icon="✨")
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -343,16 +403,13 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # --- SEÇÃO DE EXPORTAÇÃO COM FILTROS ---
+        # --- SEÇÃO DE EXPORTAÇÃO ---
         st.sidebar.markdown("---")
-        st.sidebar.subheader("📥 Exportação Excel")
+        st.sidebar.subheader("📥 Exportação")
         
-        # Filtro de Exportação (NOVO)
         tipo_export = st.sidebar.selectbox("Filtrar planilha por:", ["Geral (Todos)", "Apenas SAC", "Apenas Pendências"])
         
         df_export = df.copy()
-        
-        # Lógica do Filtro
         if tipo_export == "Apenas SAC":
             df_export = df_export[df_export["Setor"] == "SAC"]
         elif tipo_export == "Apenas Pendências":
@@ -360,7 +417,6 @@ def pagina_dashboard():
             
         csv = converter_para_excel_csv(df_export)
         
-        # Nome do arquivo muda conforme o filtro
         nome_arquivo = f'relatorio_{tipo_export.split()[0].lower()}_{datetime.now().strftime("%d-%m-%Y")}.csv'
         
         st.sidebar.download_button(
@@ -370,12 +426,10 @@ def pagina_dashboard():
             mime='text/csv',
         )
 
-        # --- FILTROS VISUAIS DO DASHBOARD ---
+        # --- FILTROS VISUAIS ---
         st.sidebar.markdown("---")
         st.sidebar.subheader("Filtros do Painel")
         
-        # Convertendo para data para filtrar (Lembrando que salvamos como string DD/MM/YYYY)
-        # Precisamos converter de volta para datetime para filtrar
         df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
         
         data_min = df["Data_Filtro"].min().date()
@@ -446,7 +500,6 @@ def pagina_dashboard():
 
         st.markdown("---")
         st.subheader("📋 Base de Dados (Últimos 50 registros)")
-        # Remove a coluna auxiliar de filtro antes de mostrar
         df_show = df_filtrado.drop(columns=["Data_Filtro"], errors='ignore')
         st.dataframe(df_show.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
 
