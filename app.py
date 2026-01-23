@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px # Biblioteca de gráficos avançados
+import plotly.express as px
 import os
-import urllib.parse
+import streamlit.components.v1 as components # Necessário para o truque de cópia
 from datetime import datetime
 
 # Configuração da página
@@ -12,18 +12,15 @@ st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wid
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
-#      FUNÇÕES DE BANCO DE DADOS (CSV)
+#      FUNÇÕES DE BANCO DE DADOS
 # ==========================================
 def inicializar_banco():
-    """Cria o arquivo CSV se ele não existir"""
     if not os.path.exists(ARQUIVO_DADOS):
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Motivo", "Transportadora"])
         df.to_csv(ARQUIVO_DADOS, index=False)
 
 def salvar_registro(setor, motivo, transportadora="-"):
-    """Salva uma nova linha no CSV (Anônimo)"""
     inicializar_banco()
-    
     agora = datetime.now()
     nova_linha = {
         "Data": agora.strftime("%Y-%m-%d"),
@@ -32,7 +29,6 @@ def salvar_registro(setor, motivo, transportadora="-"):
         "Motivo": motivo,
         "Transportadora": transportadora
     }
-    
     try:
         df = pd.read_csv(ARQUIVO_DADOS)
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
@@ -41,77 +37,84 @@ def salvar_registro(setor, motivo, transportadora="-"):
         st.error(f"Erro ao salvar: {e}. Tente apagar o arquivo CSV antigo.")
 
 def carregar_dados():
-    """Lê o CSV para o Dashboard"""
     inicializar_banco()
     return pd.read_csv(ARQUIVO_DADOS)
 
 # ==========================================
-#      DESIGN BLINDADO (CSS)
+#      FUNÇÃO DE CÓPIA AUTOMÁTICA (JS)
+# ==========================================
+def copiar_texto_js(texto):
+    # Truque de JavaScript para copiar direto
+    js_script = f"""
+        <script>
+            function copyToClipboard(text) {{
+                const el = document.createElement('textarea');
+                el.value = text;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+            }}
+            copyToClipboard(`{texto}`);
+        </script>
+    """
+    components.html(js_script, height=0)
+
+# ==========================================
+#      DESIGN
 # ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #1e293b !important; background-color: #f8fafc !important; }
-    
-    /* Sidebar */
     section[data-testid="stSidebar"] { background-color: #0f172a !important; }
     section[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
-    
-    /* Títulos e Métricas */
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
-    div[data-testid="stMetricValue"] { color: #2563eb !important; }
     
-    /* Inputs */
-    .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
-        background-color: #ffffff !important; color: #000000 !important; border: 1px solid #e2e8f0; border-radius: 8px;
+    .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input {
+        background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
     }
     
-    /* Code Block */
-    .stCodeBlock { background-color: #ffffff !important; border: 1px solid #e2e8f0; border-radius: 8px; }
-    .stCodeBlock code { color: #334155 !important; font-family: 'Inter', sans-serif !important; }
+    .preview-box {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 15px;
+        color: #334155;
+        white-space: pre-wrap;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
 
-    /* Botão Principal */
     .stButton button {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; color: white !important;
-        border: none; padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600; width: 100%;
-        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
     }
-    .stButton button:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
     
     /* Botão Registrar (Verde) */
     .botao-registrar button {
         background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-#           MENU LATERAL
+#           NAVEGAÇÃO
 # ==========================================
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
 
 st.sidebar.title("Navegação")
-pagina_escolhida = st.sidebar.radio(
-    "Ir para:",
-    ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial")
-)
-
+pagina_escolhida = st.sidebar.radio("Ir para:", ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"))
 st.sidebar.markdown("---")
-# Removido o texto da versão conforme solicitado
 
 # ==========================================
-#      DADOS (Listas)
+#      DADOS E MENSAGENS
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
-# ==========================================
-#      MENSAGENS (Dicionários)
-# ==========================================
-# (Mantendo os mesmos dicionários já atualizados anteriormente)
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -183,15 +186,20 @@ def pagina_pendencias():
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
-        st.info("Visualização:")
-        st.code(texto_final, language="text")
+        # VISUALIZAÇÃO (Para ler)
+        st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         
-        # BOTÃO PARA SALVAR (Atualizado para "Registrar")
+        # BOTÃO
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        if st.button("✅ Registrar", key="btn_save_pend"):
+        if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
             salvar_registro("Pendência", opcao, transp)
-            st.success(f"Atendimento '{opcao}' registrado!")
+            st.success("Atendimento registrado!")
+            # Tenta cópia automática
+            copiar_texto_js(texto_final)
+            # Se não funcionar, mostra caixa abaixo (fallback)
+            st.caption("Se não copiou automaticamente, use a caixa abaixo:")
+            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -211,7 +219,7 @@ def pagina_sac():
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         st.markdown("---")
         
-        # Lógica de Campos (Mantida)
+        # Lógica de Campos (Simplificada para brevidade)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -267,27 +275,32 @@ def pagina_sac():
             substituto = valor if valor else "................"
             texto_final = texto_final.replace(chave, substituto)
         
-        st.info("Visualização:")
-        st.code(texto_final, language="text")
+        # VISUALIZAÇÃO
+        st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
 
-        # BOTÃO PARA SALVAR (Atualizado para "Registrar")
+        # BOTÃO
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         transp_usada = "-"
         if "{transportadora}" in dados:
             transp_usada = dados["{transportadora}"]
             
-        if st.button("✅ Registrar", key="btn_save_sac"):
+        if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
             salvar_registro("SAC", opcao, transp_usada)
-            st.success(f"Atendimento '{opcao}' registrado!")
+            st.success("Atendimento registrado!")
+            # Tenta cópia automática
+            copiar_texto_js(texto_final)
+            # Backup
+            st.caption("Se não copiou automaticamente, use a caixa abaixo:")
+            st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-#           PÁGINA DASHBOARD (GERENCIAL)
+#           DASHBOARD
 # ==========================================
 def pagina_dashboard():
     st.title("📊 Dashboard Gerencial")
-    st.markdown("Visão estratégica dos atendimentos e produtividade.")
+    st.markdown("Visão estratégica dos atendimentos.")
     st.markdown("---")
 
     if not os.path.exists(ARQUIVO_DADOS):
@@ -300,8 +313,7 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # --- FILTROS ---
-        st.sidebar.subheader("Filtros do Dashboard")
+        st.sidebar.subheader("Filtros")
         df["Data"] = pd.to_datetime(df["Data"])
         
         data_min = df["Data"].min().date()
@@ -311,104 +323,41 @@ def pagina_dashboard():
         data_inicial = c_data1.date_input("Início", data_min)
         data_final = c_data2.date_input("Fim", data_max)
         
-        # Filtra o DF
         mask = (df["Data"].dt.date >= data_inicial) & (df["Data"].dt.date <= data_final)
         df_filtrado = df.loc[mask]
         
         if df_filtrado.empty:
-            st.warning("Nenhum dado encontrado para o período selecionado.")
+            st.warning("Nenhum dado encontrado para o período.")
             return
 
-        # --- KPIs (MÉTRICAS TOPO) ---
+        # KPIs
         total = len(df_filtrado)
         sac_total = len(df_filtrado[df_filtrado["Setor"] == "SAC"])
         pend_total = len(df_filtrado[df_filtrado["Setor"] == "Pendência"])
         
         kpi1, kpi2, kpi3 = st.columns(3)
-        kpi1.metric("Total de Atendimentos", total, border=True)
+        kpi1.metric("Total", total, border=True)
         kpi2.metric("SAC", sac_total, border=True)
         kpi3.metric("Pendências", pend_total, border=True)
 
-        st.markdown("##") # Espaçamento
+        st.markdown("##")
 
-        # --- GRÁFICOS INTERATIVOS (PLOTLY) ---
-        
-        col_graf1, col_graf2 = st.columns([1, 1])
-
+        col_graf1, col_graf2 = st.columns(2)
         with col_graf1:
-            st.subheader("Distribuição por Setor")
-            fig_pizza = px.pie(
-                df_filtrado, 
-                names='Setor', 
-                hole=0.4,
-                color_discrete_sequence=px.colors.sequential.Blues_r
-            )
+            st.subheader("Por Setor")
+            fig_pizza = px.pie(df_filtrado, names='Setor', hole=0.4, color_discrete_sequence=px.colors.sequential.Blues_r)
             st.plotly_chart(fig_pizza, use_container_width=True)
             
         with col_graf2:
-            st.subheader("Evolução Diária")
-            # Agrupa por data para linha do tempo
-            vendas_dia = df_filtrado.groupby(df_filtrado['Data'].dt.date).size().reset_index(name='Atendimentos')
-            fig_linha = px.line(
-                vendas_dia, 
-                x='Data', 
-                y='Atendimentos', 
-                markers=True,
-                line_shape='spline'
-            )
-            fig_linha.update_traces(line_color='#2563eb', line_width=3)
+            st.subheader("Evolução")
+            vendas_dia = df_filtrado.groupby(df_filtrado['Data'].dt.date).size().reset_index(name='Qtd')
+            fig_linha = px.line(vendas_dia, x='Data', y='Qtd', markers=True)
+            fig_linha.update_traces(line_color='#2563eb')
             st.plotly_chart(fig_linha, use_container_width=True)
 
         st.markdown("---")
-
-        # --- RANKING DE MOTIVOS ---
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            st.subheader("Top Motivos (SAC)")
-            df_sac = df_filtrado[df_filtrado["Setor"] == "SAC"]
-            if not df_sac.empty:
-                top_sac = df_sac['Motivo'].value_counts().reset_index()
-                top_sac.columns = ['Motivo', 'Qtd']
-                fig_bar_sac = px.bar(
-                    top_sac.head(10).sort_values('Qtd', ascending=True), 
-                    x='Qtd', y='Motivo', 
-                    orientation='h',
-                    text='Qtd',
-                    color_discrete_sequence=['#3b82f6']
-                )
-                fig_bar_sac.update_layout(xaxis_title=None, yaxis_title=None)
-                st.plotly_chart(fig_bar_sac, use_container_width=True)
-            else:
-                st.info("Sem dados.")
-
-        with c2:
-            st.subheader("Top Motivos (Pendências)")
-            df_pend = df_filtrado[df_filtrado["Setor"] == "Pendência"]
-            if not df_pend.empty:
-                top_pend = df_pend['Motivo'].value_counts().reset_index()
-                top_pend.columns = ['Motivo', 'Qtd']
-                fig_bar_pend = px.bar(
-                    top_pend.head(10).sort_values('Qtd', ascending=True), 
-                    x='Qtd', y='Motivo', 
-                    orientation='h', 
-                    text='Qtd',
-                    color_discrete_sequence=['#0ea5e9']
-                )
-                fig_bar_pend.update_layout(xaxis_title=None, yaxis_title=None)
-                st.plotly_chart(fig_bar_pend, use_container_width=True)
-            else:
-                st.info("Sem dados.")
-
-        st.markdown("---")
-        st.subheader("📋 Base de Dados (Últimos 50 registros)")
-        
-        # Grid com dados
-        st.dataframe(
-            df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(50),
-            use_container_width=True,
-            hide_index=True
-        )
+        st.subheader("Últimos Registros")
+        st.dataframe(df_filtrado.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"Erro no Dashboard: {e}")
