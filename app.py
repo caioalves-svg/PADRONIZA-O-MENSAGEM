@@ -85,7 +85,7 @@ pagina_escolhida = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 <div style="text-align: center; color: #94a3b8; font-size: 12px;">
-    Engage Eletro<br>Sistema Interno v5.0 (Smart Fill)
+    Engage Eletro<br>Sistema Interno v5.1
 </div>
 """, unsafe_allow_html=True)
 
@@ -105,6 +105,7 @@ lista_transportadoras = sorted([
     "TJB", "TOTAL", "TRILOG"
 ])
 
+# ADICIONADO JULIA AQUI
 colaboradores_sac = sorted([
     "Ana Carolina", "Ana Victoria", "Eliane", "Cassia", 
     "Juliana", "Tamara", "Rafaela", "Mylena", 
@@ -132,7 +133,6 @@ modelos_pendencias = {
 # ==========================================
 #      MENSAGENS SAC (COM CAMPOS DINÂMICOS)
 # ==========================================
-# Os textos aqui foram modificados para usar chaves {} onde antes tinha .....
 modelos_sac = {
     "Solicitação de Coleta": """Olá,\n\nVimos que você se encontra dentro do prazo de troca / cancelamento e neste caso iremos solicitar ao setor responsável para que seja gerada a nota fiscal de coleta e seja encaminhada para a transportadora responsável para a realização do recolhimento da mercadoria.\n\nInstruções de devolução:\n- Favor devolver as mercadorias em suas embalagens originais ou similares.\n- A transportadora irá realizar a coleta das mercadorias em sua residência nos próximos 15/20 dias úteis. Favor enviar dentro da embalagem um xerox da Nota Fiscal.\n\nRessaltamos que após a coleta do seu produto, estaremos prosseguindo com as tratativas do seu atendimento de acordo com o solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     
@@ -191,7 +191,8 @@ def pagina_pendencias():
     
     with col1:
         st.subheader("1. Configuração")
-        colab = st.selectbox("👤 Quem é você?", colaboradores_pendencias, key="colab_p")
+        # Rótulo alterado para "Colaborador"
+        colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
 
     with col2:
@@ -216,7 +217,8 @@ def pagina_sac():
     
     with col1:
         st.subheader("1. Configuração")
-        colab = st.selectbox("👤 Quem é você?", colaboradores_sac, key="colab_s")
+        # Rótulo alterado para "Colaborador"
+        colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         
         st.markdown("---")
@@ -224,7 +226,6 @@ def pagina_sac():
         # =========================================
         #   LÓGICA INTELIGENTE DE CAMPOS (INPUTS)
         # =========================================
-        # O sistema verifica qual mensagem foi escolhida e abre SÓ os campos necessários
         
         if "Assistência Técnica (Dentro dos 7 dias)" in opcao:
             st.info("🔧 Dados da Assistência")
@@ -244,7 +245,8 @@ def pagina_sac():
             
         elif "Confirmação de Entrega" in opcao:
             st.info("🚚 Dados da Entrega")
-            dados["{transportadora}"] = st.text_input("Transportadora:")
+            # Transportadora agora é SELECTBOX (Usa a lista existente)
+            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_ent")
             dados["{data_entrega}"] = st.text_input("Data da Entrega:")
             
         elif "Conversão GLP" in opcao:
@@ -261,11 +263,13 @@ def pagina_sac():
             dados["{previsao_entrega}"] = st.text_input("Previsão de Entrega:")
             dados["{link_rastreio}"] = st.text_input("Link de Rastreio:")
             dados["{nota_fiscal}"] = st.text_input("Nota Fiscal:")
-            dados["{transportadora}"] = st.text_input("Transportadora:")
+            # Transportadora agora é SELECTBOX (Usa a lista existente)
+            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_transito")
 
         elif "Fiscalização" in opcao:
             st.info("🛑 Fiscalização")
-            dados["{transportadora}"] = st.text_input("Transportadora:")
+            # Transportadora agora é SELECTBOX (Usa a lista existente)
+            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_fisc")
             
         elif "Insucesso na Entrega" in opcao:
             st.info("🏠 Endereço para Confirmar")
