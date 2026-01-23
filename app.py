@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-import streamlit.components.v1 as components # Necessário para o truque de cópia
+import streamlit.components.v1 as components # Necessário para a cópia automática
 from datetime import datetime
 
 # Configuração da página
@@ -12,7 +12,7 @@ st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wid
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
-#      FUNÇÕES DE BANCO DE DADOS
+#      FUNÇÕES DE BANCO DE DADOS (CSV)
 # ==========================================
 def inicializar_banco():
     if not os.path.exists(ARQUIVO_DADOS):
@@ -41,27 +41,40 @@ def carregar_dados():
     return pd.read_csv(ARQUIVO_DADOS)
 
 # ==========================================
-#      FUNÇÃO DE CÓPIA AUTOMÁTICA (JS)
+#      MÁGICA DE CÓPIA AUTOMÁTICA (JS)
 # ==========================================
-def copiar_texto_js(texto):
-    # Truque de JavaScript para copiar direto
-    js_script = f"""
-        <script>
-            function copyToClipboard(text) {{
-                const el = document.createElement('textarea');
-                el.value = text;
-                document.body.appendChild(el);
-                el.select();
+def copiar_para_clipboard(texto):
+    # Este script roda no navegador e força a cópia
+    texto_escapado = texto.replace('`', '\`').replace('${', '\${')
+    js = f"""
+    <script>
+    function copyToClipboard() {{
+        const text = `{texto_escapado}`;
+        navigator.clipboard.writeText(text).then(function() {{
+            console.log('Async: Copying to clipboard was successful!');
+        }}, function(err) {{
+            console.error('Async: Could not copy text: ', err);
+            // Fallback para navegadores antigos
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {{
                 document.execCommand('copy');
-                document.body.removeChild(el);
+            }} catch (err) {{
+                console.error('Fallback: Oops, unable to copy', err);
             }}
-            copyToClipboard(`{texto}`);
-        </script>
+            document.body.removeChild(textArea);
+        }});
+    }}
+    copyToClipboard();
+    </script>
     """
-    components.html(js_script, height=0)
+    components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN
+#      DESIGN BLINDADO (CSS)
 # ==========================================
 st.markdown("""
 <style>
@@ -71,13 +84,13 @@ st.markdown("""
     section[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
     
-    .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input {
+    .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
         background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
     }
     
     .preview-box {
         background-color: #ffffff;
-        border: 1px solid #e2e8f0;
+        border: 1px dashed #94a3b8;
         border-radius: 8px;
         padding: 15px;
         color: #334155;
@@ -86,15 +99,15 @@ st.markdown("""
         font-size: 14px;
     }
 
+    /* Botão Registrar e Copiar (Verde) */
     .stButton button {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; color: white !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; 
+        color: white !important;
         border: none; padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; width: 100%;
+        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+        font-size: 16px;
     }
-    
-    /* Botão Registrar (Verde) */
-    .botao-registrar button {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-    }
+    .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,12 +122,15 @@ pagina_escolhida = st.sidebar.radio("Ir para:", ("Pendências Logísticas", "SAC
 st.sidebar.markdown("---")
 
 # ==========================================
-#      DADOS E MENSAGENS
+#      DADOS (Listas)
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
+# ==========================================
+#      MENSAGENS (Dicionários)
+# ==========================================
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -169,7 +185,7 @@ modelos_sac = {
 # ==========================================
 def pagina_pendencias():
     st.title("🚚 Pendências Logísticas")
-    st.markdown("Geração de mensagens e registro operacional.")
+    st.markdown("Use este painel para gerar mensagens e registrar atendimentos.")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2], gap="large")
@@ -186,20 +202,16 @@ def pagina_pendencias():
         texto_cru = modelos_pendencias[opcao]
         texto_final = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", colab)
         
-        # VISUALIZAÇÃO (Para ler)
+        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         
-        # BOTÃO
-        st.write("")
+        # BOTÃO REGISTRAR E COPIAR
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
             salvar_registro("Pendência", opcao, transp)
-            st.success("Atendimento registrado!")
-            # Tenta cópia automática
-            copiar_texto_js(texto_final)
-            # Se não funcionar, mostra caixa abaixo (fallback)
-            st.caption("Se não copiou automaticamente, use a caixa abaixo:")
-            st.code(texto_final, language="text")
+            st.success("Registrado!")
+            copiar_para_clipboard(texto_final)
+            st.success("Copiado para a área de transferência!")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -207,7 +219,7 @@ def pagina_pendencias():
 # ==========================================
 def pagina_sac():
     st.title("🎧 SAC / Atendimento")
-    st.markdown("Geração de respostas rápidas e registro.")
+    st.markdown("Preencha os dados e registre o atendimento.")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2], gap="large")
@@ -219,7 +231,7 @@ def pagina_sac():
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         st.markdown("---")
         
-        # Lógica de Campos (Simplificada para brevidade)
+        # Lógica de Campos (Simplificada)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -275,11 +287,10 @@ def pagina_sac():
             substituto = valor if valor else "................"
             texto_final = texto_final.replace(chave, substituto)
         
-        # VISUALIZAÇÃO
+        # PREVIEW VISUAL
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
 
-        # BOTÃO
-        st.write("")
+        # BOTÃO REGISTRAR E COPIAR
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         transp_usada = "-"
         if "{transportadora}" in dados:
@@ -287,12 +298,9 @@ def pagina_sac():
             
         if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
             salvar_registro("SAC", opcao, transp_usada)
-            st.success("Atendimento registrado!")
-            # Tenta cópia automática
-            copiar_texto_js(texto_final)
-            # Backup
-            st.caption("Se não copiou automaticamente, use a caixa abaixo:")
-            st.code(texto_final, language="text")
+            st.success("Registrado!")
+            copiar_para_clipboard(texto_final)
+            st.success("Copiado para a área de transferência!")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
