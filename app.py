@@ -3,16 +3,18 @@ import pandas as pd
 import plotly.express as px
 import os
 import pytz
+import json
+import streamlit.components.v1 as components
 from datetime import datetime
 
 # Configuração da página
 st.set_page_config(page_title="Sistema Integrado", page_icon="📊", layout="wide")
 
-# Nome do arquivo de dados
+# Nome do arquivo de dados (Banco de dados interno)
 ARQUIVO_DADOS = "historico_atendimentos.csv"
 
 # ==========================================
-#      FUNÇÕES
+#      FUNÇÕES DE BANCO DE DADOS
 # ==========================================
 def obter_data_hora_brasil():
     fuso_br = pytz.timezone('America/Sao_Paulo')
@@ -44,8 +46,40 @@ def carregar_dados():
     inicializar_banco()
     return pd.read_csv(ARQUIVO_DADOS)
 
-def converter_para_csv(df):
-    return df.to_csv(index=False).encode('utf-8')
+def converter_para_excel_csv(df):
+    """
+    Converte para CSV com separador de PONTO E VÍRGULA (;)
+    e codificação UTF-8-SIG (Para o Excel ler acentos e colunas certo)
+    """
+    return df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
+
+# ==========================================
+#      MÁGICA DE CÓPIA (JS)
+# ==========================================
+def copiar_para_clipboard(texto):
+    texto_json = json.dumps(texto)
+    js = f"""
+    <script>
+    function copyToClipboard() {{
+        const text = {texto_json};
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {{
+            document.execCommand('copy');
+        }} catch (err) {{
+            console.error('Erro ao copiar', err);
+        }}
+        document.body.removeChild(textArea);
+    }}
+    copyToClipboard();
+    </script>
+    """
+    components.html(js, height=0, width=0)
 
 # ==========================================
 #      DESIGN (CSS)
@@ -60,23 +94,25 @@ st.markdown("""
     
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
     
-    /* CORREÇÃO DO BOTÃO EXCEL (CSS FORÇADO) */
+    /* Botão de Download (Azul) */
     .stDownloadButton button {
-        background-color: #2563eb !important; /* Azul Forte */
+        background-color: #2563eb !important;
         color: white !important;
         border: 1px solid #1d4ed8 !important;
         font-weight: bold !important;
     }
-    .stDownloadButton button:hover {
-        background-color: #1e40af !important;
-        border-color: #1e3a8a !important;
-    }
+    .stDownloadButton button:hover { background-color: #1e40af !important; }
 
     /* Inputs */
     .stSelectbox div[data-baseweb="select"] > div, .stTextArea textarea, .stTextInput input, .stDateInput input {
         background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cbd5e1; border-radius: 8px;
     }
     
+    .preview-box {
+        background-color: #ffffff; border: 1px dashed #94a3b8; border-radius: 8px; padding: 15px;
+        color: #334155; white-space: pre-wrap; margin-bottom: 15px; font-size: 14px;
+    }
+
     /* Botão Registrar (Verde) */
     .botao-registrar .stButton button {
         background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; color: white !important;
@@ -85,7 +121,7 @@ st.markdown("""
     }
     .botao-registrar .stButton button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3); }
     
-    /* Caixa de Código (Onde clica para copiar) */
+    /* Caixa de Código */
     .stCodeBlock { background-color: #f0fdf4 !important; border: 1px solid #86efac !important; border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
@@ -108,10 +144,12 @@ lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRO
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
-#      MENSAGENS (Scripts)
+#      MENSAGENS PENDÊNCIAS (ATUALIZADO)
 # ==========================================
 modelos_pendencias = {
-    "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
+    # MENSAGEM AUSENTE ATUALIZADA
+    "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua: \nNúmero: \nBairro: \nCEP: \nCidade: \nEstado: \nPonto de Referência: \nRecebedor: \nTelefone: \n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
+    
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
     "Endereço Não Localizado": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria, porém, não localizou o endereço.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo:\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nAtenciosamente,\n{colaborador}""",
     "Área de Risco": """Olá, prezado cliente! Tudo bem? Espero que sim!\n\nA transportadora {transportadora}, informou que está com dificuldades para realizar a entrega no endereço cadastrado no portal. Dessa forma, peço por gentileza que nos informe um endereço alternativo e também telefones ativos para melhor comunicação.\n\nCaso não possua um outro endereço, sua mercadoria ficará disponível para retirada da base da transportadora.\n\nQualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
@@ -125,6 +163,9 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
+# ==========================================
+#      MENSAGENS SAC
+# ==========================================
 modelos_sac = {
     "Solicitação de Coleta": """Olá,\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "Barrar Entrega na Transportadora": """Olá,\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -185,11 +226,10 @@ def pagina_pendencias():
         
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        # BOTÃO: Ao clicar, salva e exibe a caixa de cópia embutida
         if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_pend"):
             salvar_registro("Pendência", opcao, transp)
             st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
-            # Exibe o código APÓS o clique para copiar fácil
+            copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -210,7 +250,7 @@ def pagina_sac():
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         st.markdown("---")
         
-        # Lógica de Campos (Simplificada)
+        # Lógica de Campos (Mantida)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -274,10 +314,10 @@ def pagina_sac():
         if "{transportadora}" in dados:
             transp_usada = dados["{transportadora}"]
             
-        # BOTÃO: Ao clicar, salva e exibe a caixa de cópia embutida
         if st.button("✅ Registrar e Copiar Mensagem", key="btn_save_sac"):
             salvar_registro("SAC", opcao, transp_usada)
             st.toast("Sucesso! Copie a mensagem abaixo.", icon="📋")
+            copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -299,12 +339,12 @@ def pagina_dashboard():
             st.warning("O arquivo de dados está vazio.")
             return
 
-        # BOTÃO DE EXPORTAR (COM CORREÇÃO DE CSS)
+        # BOTÃO EXCEL COM FORMATO PONTO E VÍRGULA
         st.sidebar.markdown("---")
         st.sidebar.subheader("📥 Exportação")
-        csv = converter_para_csv(df)
+        csv = converter_para_excel_csv(df)
         st.sidebar.download_button(
-            label="Baixar Planilha (Excel)",
+            label="Baixar Excel (.csv)",
             data=csv,
             file_name=f'relatorio_atendimentos_{datetime.now().strftime("%d-%m-%Y")}.csv',
             mime='text/csv',
@@ -339,7 +379,7 @@ def pagina_dashboard():
 
         st.markdown("##")
 
-        # GRÁFICOS DE BARRAS POR MOTIVO
+        # GRÁFICOS
         c1, c2 = st.columns(2)
         with c1:
             st.subheader("📊 Motivos - SAC")
@@ -347,14 +387,7 @@ def pagina_dashboard():
             if not df_sac.empty:
                 contagem = df_sac['Motivo'].value_counts().reset_index()
                 contagem.columns = ['Motivo', 'Quantidade']
-                fig_sac = px.bar(
-                    contagem.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#3b82f6']
-                )
+                fig_sac = px.bar(contagem.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#3b82f6'])
                 fig_sac.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
@@ -366,14 +399,7 @@ def pagina_dashboard():
             if not df_pend.empty:
                 contagem_p = df_pend['Motivo'].value_counts().reset_index()
                 contagem_p.columns = ['Motivo', 'Quantidade']
-                fig_pend = px.bar(
-                    contagem_p.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#0ea5e9']
-                )
+                fig_pend = px.bar(contagem_p.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#0ea5e9'])
                 fig_pend.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_pend, use_container_width=True)
             else:
