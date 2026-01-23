@@ -148,7 +148,7 @@ st.sidebar.markdown("---")
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
-colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
+colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
 #      MENSAGENS PENDÊNCIAS
