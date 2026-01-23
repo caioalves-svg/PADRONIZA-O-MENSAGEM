@@ -106,9 +106,9 @@ lista_transportadoras = sorted([
 ])
 
 colaboradores_sac = sorted([
-    "Ana Carolina", "Ana Victoria", "Dolores", "Cassia", 
+    "Ana Carolina", "Ana Victoria", "Eliane", "Cassia", 
     "Juliana", "Tamara", "Rafaela", "Mylena", 
-    "Isadora", "Lorrayne", "Leticia"
+    "Isadora", "Lorrayne", "Leticia", "Julia"
 ])
 
 # ==========================================
