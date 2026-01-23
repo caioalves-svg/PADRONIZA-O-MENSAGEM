@@ -5,32 +5,36 @@ import os
 st.set_page_config(page_title="Sistema Integrado", page_icon="🏢", layout="wide")
 
 # ==========================================
-#           MENU LATERAL (COM LOGO)
+#      CARREGAR ESTILO (CSS EXTERNO)
 # ==========================================
+def carregar_css(nome_arquivo):
+    with open(nome_arquivo) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Tenta carregar o style.css se ele existir no GitHub
+if os.path.exists("style.css"):
+    carregar_css("style.css")
+
+# ==========================================
+#           MENU LATERAL
+# ==========================================
+
+# Tenta carregar a logo
+if os.path.exists("logo.png"):
+    st.sidebar.image("logo.png", use_container_width=True)
+
 st.sidebar.title("Navegação")
-
-# --- TENTA MOSTRAR A LOGO ---
-# Certifique-se de que o nome do arquivo aqui seja IGUAL ao que você subiu no GitHub
-# Pode ser "logo.png", "logo.jpg", "imagem.jpeg", etc.
-nome_do_arquivo_logo = "logo.png" 
-
-if os.path.exists(nome_do_arquivo_logo):
-    st.sidebar.image(nome_do_arquivo_logo, use_container_width=True)
-else:
-    # Se não achar a imagem, não faz nada (não trava o site)
-    pass
-
-st.sidebar.markdown("Selecione o departamento:")
 
 pagina_escolhida = st.sidebar.radio(
     "Ir para:",
     ("Pendências Logísticas", "SAC / Atendimento")
 )
+
 st.sidebar.markdown("---")
-st.sidebar.caption("Sistema Interno - Engage Eletro")
+st.sidebar.markdown('<div class="sidebar-footer">© Engage Eletro<br>Sistema Interno</div>', unsafe_allow_html=True)
 
 # ==========================================
-#      DADOS DO SETOR DE PENDÊNCIAS
+#      DADOS (Listas e Dicionários)
 # ==========================================
 
 colaboradores_pendencias = sorted([
@@ -45,6 +49,13 @@ lista_transportadoras = sorted([
     "TJB", "TOTAL", "TRILOG"
 ])
 
+colaboradores_sac = sorted([
+    "Ana Carolina", "Ana Victoria", "Dolores", "Cassia", 
+    "Juliana", "Tamara", "Rafaela", "Mylena", 
+    "Isadora", "Lorrayne", "Leticia"
+])
+
+# --- MENSAGENS PENDÊNCIAS ---
 modelos_pendencias = {
     "Ausente": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Contato": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -60,376 +71,51 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, prezado cliente! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
-
-# ==========================================
-#          DADOS DO SETOR DE SAC
-# ==========================================
-
-colaboradores_sac = sorted([
-    "Ana Carolina", "Ana Victoria", "Dolores", "Cassia", 
-    "Juliana", "Tamara", "Rafaela", "Mylena", 
-    "Isadora", "Lorrayne", "Leticia"
-])
-
+# --- MENSAGENS SAC ---
 modelos_sac = {
-    "Solicitação de Coleta": 
-"""Olá,
-
-Vimos que você se encontra dentro do prazo de troca / cancelamento e neste caso iremos solicitar ao setor responsável para que seja gerada a nota fiscal de coleta e seja encaminhada para a transportadora responsável para a realização do recolhimento da mercadoria.
-
-Instruções de devolução:
-- Favor devolver as mercadorias em suas embalagens originais ou similares.
-- A transportadora irá realizar a coleta das mercadorias em sua residência nos próximos 15/20 dias úteis. Favor enviar dentro da embalagem um xerox da Nota Fiscal.
-
-Ressaltamos que após a coleta do seu produto, estaremos prosseguindo com as tratativas do seu atendimento de acordo com o solicitado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Barrar Entrega na Transportadora":
-"""Olá,
-
-Iremos solicitar a transportadora responsável que barre a entrega. Caso tentem realizar a entrega, gentileza recusar o recebimento.
-Assim que o produto retornar à Engage Eletro seguiremos com as tratativas conforme políticas de troca ou reembolso.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Assistência Técnica (Dentro dos 7 dias)":
-"""Olá,
-
-O processo de troca tem um prazo de até 20 dias úteis a contar da data da solicitação de coleta, realizada por nós lojistas.
-Como forma de solucionar o seu problema de forma rápida, gentileza acionar a assistência técnica da ................ segue abaixo informações:
-................................................................
-
-Caso seja inviável a assistência técnica, gentileza nos informar assim verificaremos a possibilidade de troca mediante disponibilidade do nosso estoque.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Prazos de Reembolso":
-"""Olá!
-
-A devolução do valor ocorrerá na mesma forma de pagamento escolhida no momento da compra:
-- Para pagamentos com boleto, o reembolso será feito na conta bancária especificada pelo cliente ou como um vale-presente. Se todos os dados da sua conta bancária estiverem corretos, o reembolso pode levar até 3 dias úteis para constar na conta.
-- Caso você tenha pago com cartão de crédito, dependendo da data de fechamento e vencimento do seu cartão, o reembolso pode levar de uma a duas faturas.
-- Para pagamento em PIX, o reembolso será realizado na conta PIX em um dia útil.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Assistência Técnica (Fora dos 7 dias)":
-"""Olá,
-
-Verificamos que a sua compra foi realizada no dia ................. pela respectiva NF-...............
-Sendo assim, se encontra fora do prazo para solicitar cancelamento/troca, porém está amparada pela garantia e assistência autorizada da fabricante em casos de defeito de funcionamento do produto.
-
-Segue o link para a localização de um posto autorizado mais próximo à sua residência:
-............................................
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Troca de Modelo (Dentro de 7 dias)":
-"""Olá,
-
-A troca é realizada em caso de divergência de pedido, defeito ou avaria. Não efetuamos troca por modelo, cor, voltagem.
-Neste caso você deseja ficar com o produto recebido ou deseja com o reembolso da compra?
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Código Postal":
-"""Olá,
-
-Segue abaixo o código de para logística reversa do produto. Para utilizá-lo deverá ir até uma agência dos correios com o produto devidamente embalado levando consigo, obrigatoriamente, o Código de Autorização.
-
-......................................................
-(OBS1: O processo de logística reversa não gera custo algum para o cliente. Não é necessário cadastrar remetente ou destinatário, pois o código já possui todos os dados necessários).
-
-Após devolução e o produto retornar ao nosso Centro de Distribuição, seguiremos com as tratativas conforme o solicitado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Reenvio Solicitado":
-"""Olá,
-
-O seu novo envio foi solicitado, em até 72h úteis o pedido será liberado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Acareação":
-"""Olá,
-
-Iremos solicitar junto a transportadora responsável a acareação de sua entrega, onde a mesma irá até o local de entrega verificar o recebedor.
-O prazo para realização das tratativas e de 7 dias úteis.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Confirmação de Entrega":
-"""Olá,
-
-Conforme o rastreio da transportadora ..............., o produto foi entregue no dia .......................
-Segue o comprovante de entrega. (QUANDO ESTIVER DISPONÍVEL E ASSINADO)
-
-Caso você desconheça o recebimento da mercadoria, gentileza nos informar que seguiremos com uma acareação do recebimento e iniciaremos as buscas pela mercadoria.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Conversão GLP/GNV":
-"""Olá,
-
-Sua mercadoria sai de fábrica ajustado para GLP (gás de botijão) a conversão do gás natural (GNV) conforme manual de instruções.
-Quando a conversão é realizada pela própria assistência autorizada da fabricante, o produto continua amparado pela garantia da mesma.
-
-Fabricante: ..............
-Site: ...........................
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Solicitação de Dados Bancários":
-"""Olá,
-
-Gentileza informar os dados abaixo para que reembolso seja feito:
-
-Nome do titular da compra:
-CPF do titular da compra:
-Nome do banco:
-Chave Pix:
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Oferecer Desconto por Avaria":
-"""Olá,
-Lamentamos pelo ocorrido,
-
-Temos duas opções neste caso, mas primeiramente gostaríamos de saber se o produto está funcionando normalmente.
-Caso esteja funcionando e julgar pertinente conseguimos fazer um reembolso no valor de R$ ............. reais pela permanência do produto e seguirá amparando (a) pela assistência da fabricante.
-
-Se aceitar peço que nos informe os dados abaixo:
-Nome do titular da compra:
-CPF do titular da compra:
-Nome do banco:
-Chave Pix:
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Insucesso na Entrega (Solicitar dados)":
-"""Olá,
-
-A transportadora nos informou está com dificuldades para finalizar a entrega. Peço por gentileza que confirme os dados abaixo e telefones ativos.
-
-Rua:
-Cep:
-Número:
-Bairro:
-Cidade:
-Estado:
-Complemento:
-Ponto de Referência:
-2 telefones ativos:
-
-Caso não tenhamos retorno, o produto será devolvido ao nosso estoque e seguiremos com o reembolso da compra.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Nova Tentativa de Entrega":
-"""Olá,
-
-Encaminhamos as informações para a transportadora que seguirá com uma nova tentativa de entrega que irá ocorrer no prazo de 5 a 7 dias úteis, podendo ocorrer antes.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Mercadoria em Trânsito":
-"""Olá,
-
-De acordo com o rastreio seu pedido já consta em trânsito, com previsão de ser finalizada até o dia............................., podendo ocorrer antes.
-Segue abaixo o link de rastreio:
-
-Link: .................................
-Nota fiscal: ................
-Transportadora: ..........................
-Para rastrear basta utilizar o CPF do titular da compra.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Erro de Integração":
-"""Olá,
-
-Pedimos desculpas pelo transtorno. Tivemos um erro de integração em alguns pedidos, mas não se preocupe que a equipe de TI já está resolvendo e em breve será liberado.
-Agradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Erro de Integração com Atraso":
-"""Olá,
-Pedimos desculpas pela demora,
-
-Tivemos um erro de integração em alguns pedidos, que acarretou em atrasos em toda operação de envio dos pedidos.
-Solicitamos prioridade nos pedidos em atraso, para que seja liberados o mais rápido possível.
-
-Agradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Extravio Aguardar Confirmação":
-"""Olá,
-
-Gostaríamos de informar que a transportadora identificou uma possível situação de extravio no seu pedido. Estamos trabalhando com empenho junto à transportadora para localizá-lo o mais rápido possível.
-
-Pedimos a gentileza de aguardar um prazo de 48 horas para que possamos confirmar essa situação e dar um retorno definitivo.
-Caso o pedido não seja localizado dentro deste prazo, iniciaremos os procedimentos necessários para garantir sua satisfação.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Extravio com Opção de Reenvio":
-"""Olá,
-Pedimos desculpas por qualquer transtorno causado,
-
-Conforme verificamos junto a transportadora, ocorreu o extravio de sua mercadoria durante o envio do item.
-Logo gostaríamos de saber como deseja seguir com a compra: Reenvio ou reembolso da mesma?
-
-Agradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Fiscalização":
-"""Olá,
-
-Verificamos que seu pedido está parado na fiscalização, mas não se preocupe já estamos em contato com a transportadora ............................. para agilizar a liberação.
-Contudo, sua mercadoria sofrerá atrasos na entrega, mas não se preocupe, assim que a mercadoria for liberada, iremos solicitar máxima prioridade em sua entrega.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Item Faltante":
-"""Olá,
-
-Iremos solicitar ao nosso estoque que verifique se temos o item para envio separadamente.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Atraso na Entrega":
-"""Olá,
-
-Lamentamos pelo atraso ocorrido na entrega do seu pedido.
-Estamos em contato com a transportadora para verificar o ocorrido, solicitamos a previsão de entrega e prioridade para que seja finalizado o mais rápido possível.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Entrega (Serviços não inclusos)":
-"""Olá,
-
-O transporte realizado pela Engage Eletro junto as transportadoras parceiras, abrange somente a entrega do produto na entrada (porta, portaria) do local indicado por você no momento da compra, não incluindo outros serviços como, montagem ou desmontagem de produtos, subida de escadas, transporte por guincho, instalação, entre outros.
-
-Reforçamos que as entregas ocorrem de segunda à sexta em horário comercial.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Agradecimento":
-"""Olá,
-
-Que bom, fico feliz que tenha dado tudo certo.
-Se você tiver alguma dúvida, preocupação ou sugestão, não hesite em entrar em contato conosco.
-Estamos aqui para ajudá-la da melhor maneira possível.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Código Coleta Domiciliar":
-"""Olá,
-
-Segue abaixo o código para logística reversa do produto. Para utilizá-lo o produto deve está devidamente embalado no dia da coleta.
-
-......................................................
-(OBS1: O processo de logística reversa não gera custo algum para o cliente. Não é necessário cadastrar remetente ou destinatário, pois o código já possui todos os dados necessários).
-
-Após devolução e o produto retornar ao nosso Centro de Distribuição, seguiremos com as tratativas conforme o solicitado.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Embalagem Similar":
-"""Olá,
-
-Informamos que, para garantir a integridade do produto durante o processo de devolução, recomendamos o uso de embalagens adequadas, como o envolvimento do produto em plástico bolha ou a utilização de camadas de papelão. Estas medidas ajudam a evitar danos adicionais ao item e asseguram uma devolução segura.
-
-Agradecemos pela compreensão e estamos à disposição para qualquer dúvida.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Termo para Troca Casada":
-"""Olá,
-
-Para verificarmos a possibilidade de prosseguimento com à entrega do produto no momento da coleta, propomos a formalização por meio de um Termo de Acordo Extrajudicial que será encaminhado pelo nosso jurídico.
-
-O procedimento funciona da seguinte forma:
-- Encaminharemos o termo, que deverá ser assinado em todas as páginas, conforme o documento de identificação apresentado (RG, CNH, etc.);
-- O termo assinado, juntamente com a foto do documento de identificação, deve ser enviado de volta em até 48 horas;
-- Após o recebimento, nosso departamento jurídico fará a validação;
-- Com a validação concluída, daremos sequência às tratativas de envio e coleta dos produtos.
-
-Podemos seguir com esse procedimento?
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Recusa de Troca (Avaria)":
-"""Conforme já informado anteriormente, é necessário realizar a troca do produto avariado, a fim de evitar problemas futuros fora do prazo de atendimento pela loja.
-
-Diante da sua recusa em efetuar a troca, entendemos que o(a) senhor(a) está ciente e assumindo o risco de permanecer com um produto que apresenta avaria física, abrindo mão de qualquer reivindicação posterior relacionada a esse dano, e isentando a loja de toda e qualquer responsabilidade futura quanto a esse aspecto.
-
-Ressaltamos que o produto permanece coberto pela garantia do fabricante exclusivamente para defeitos de funcionamento, conforme previsto em garantia legal e contratual. Avarias físicas não são cobertas por essa garantia.
-
-Permanecemos à disposição para qualquer esclarecimento adicional.
-
-Equipe de atendimento Engage Eletro.
-{colaborador}""",
-
-    "Rastreio Indisponível (Jadlog)":
-"""Gostaríamos de esclarecer que seu pedido foi despachado regularmente e dentro do prazo previsto pela modalidade de entrega escolhida.
-Contudo, o sistema de rastreamento da transportadora está temporariamente indisponível, o que nos impede de fornecer informações atualizadas sobre a localização do pedido neste momento.
-
-Já notificamos a transportadora parceira responsável e estamos acompanhando de perto para que o sistema seja restabelecido o quanto antes.
-
-Agradecemos a compreensão e pedimos desculpas pelo transtorno causado.
-Atenciosamente,
-
-Equipe de atendimento Engage Eletro.
-{colaborador}"""
+    "Solicitação de Coleta": """Olá,\n\nVimos que você se encontra dentro do prazo de troca / cancelamento e neste caso iremos solicitar ao setor responsável para que seja gerada a nota fiscal de coleta e seja encaminhada para a transportadora responsável para a realização do recolhimento da mercadoria.\n\nInstruções de devolução:\n- Favor devolver as mercadorias em suas embalagens originais ou similares.\n- A transportadora irá realizar a coleta das mercadorias em sua residência nos próximos 15/20 dias úteis. Favor enviar dentro da embalagem um xerox da Nota Fiscal.\n\nRessaltamos que após a coleta do seu produto, estaremos prosseguindo com as tratativas do seu atendimento de acordo com o solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Barrar Entrega na Transportadora": """Olá,\n\nIremos solicitar a transportadora responsável que barre a entrega. Caso tentem realizar a entrega, gentileza recusar o recebimento.\nAssim que o produto retornar à Engage Eletro seguiremos com as tratativas conforme políticas de troca ou reembolso.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Assistência Técnica (Dentro dos 7 dias)": """Olá,\n\nO processo de troca tem um prazo de até 20 dias úteis a contar da data da solicitação de coleta, realizada por nós lojistas.\nComo forma de solucionar o seu problema de forma rápida, gentileza acionar a assistência técnica da ................ segue abaixo informações:\n................................................................\n\nCaso seja inviável a assistência técnica, gentileza nos informar assim verificaremos a possibilidade de troca mediante disponibilidade do nosso estoque.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Prazos de Reembolso": """Olá!\n\nA devolução do valor ocorrerá na mesma forma de pagamento escolhida no momento da compra:\n- Para pagamentos com boleto, o reembolso será feito na conta bancária especificada pelo cliente ou como um vale-presente. Se todos os dados da sua conta bancária estiverem corretos, o reembolso pode levar até 3 dias úteis para constar na conta.\n- Caso você tenha pago com cartão de crédito, dependendo da data de fechamento e vencimento do seu cartão, o reembolso pode levar de uma a duas faturas.\n- Para pagamento em PIX, o reembolso será realizado na conta PIX em um dia útil.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Assistência Técnica (Fora dos 7 dias)": """Olá,\n\nVerificamos que a sua compra foi realizada no dia ................. pela respectiva NF-...............\nSendo assim, se encontra fora do prazo para solicitar cancelamento/troca, porém está amparada pela garantia e assistência autorizada da fabricante em casos de defeito de funcionamento do produto.\n\nSegue o link para a localização de um posto autorizado mais próximo à sua residência:\n............................................\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Troca de Modelo (Dentro de 7 dias)": """Olá,\n\nA troca é realizada em caso de divergência de pedido, defeito ou avaria. Não efetuamos troca por modelo, cor, voltagem.\nNeste caso você deseja ficar com o produto recebido ou deseja com o reembolso da compra?\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Código Postal": """Olá,\n\nSegue abaixo o código de para logística reversa do produto. Para utilizá-lo deverá ir até uma agência dos correios com o produto devidamente embalado levando consigo, obrigatoriamente, o Código de Autorização.\n\n......................................................\n(OBS1: O processo de logística reversa não gera custo algum para o cliente. Não é necessário cadastrar remetente ou destinatário, pois o código já possui todos os dados necessários).\n\nApós devolução e o produto retornar ao nosso Centro de Distribuição, seguiremos com as tratativas conforme o solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Reenvio Solicitado": """Olá,\n\nO seu novo envio foi solicitado, em até 72h úteis o pedido será liberado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Acareação": """Olá,\n\nIremos solicitar junto a transportadora responsável a acareação de sua entrega, onde a mesma irá até o local de entrega verificar o recebedor.\nO prazo para realização das tratativas e de 7 dias úteis.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Confirmação de Entrega": """Olá,\n\nConforme o rastreio da transportadora ..............., o produto foi entregue no dia .......................\nSegue o comprovante de entrega. (QUANDO ESTIVER DISPONÍVEL E ASSINADO)\n\nCaso você desconheça o recebimento da mercadoria, gentileza nos informar que seguiremos com uma acareação do recebimento e iniciaremos as buscas pela mercadoria.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Conversão GLP/GNV": """Olá,\n\nSua mercadoria sai de fábrica ajustado para GLP (gás de botijão) a conversão do gás natural (GNV) conforme manual de instruções.\nQuando a conversão é realizada pela própria assistência autorizada da fabricante, o produto continua amparado pela garantia da mesma.\n\nFabricante: ..............\nSite: ...........................\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Solicitação de Dados Bancários": """Olá,\n\nGentileza informar os dados abaixo para que reembolso seja feito:\n\nNome do titular da compra:\nCPF do titular da compra:\nNome do banco:\nChave Pix:\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Oferecer Desconto por Avaria": """Olá,\nLamentamos pelo ocorrido,\n\nTemos duas opções neste caso, mas primeiramente gostaríamos de saber se o produto está funcionando normalmente.\nCaso esteja funcionando e julgar pertinente conseguimos fazer um reembolso no valor de R$ ............. reais pela permanência do produto e seguirá amparando (a) pela assistência da fabricante.\n\nSe aceitar peço que nos informe os dados abaixo:\nNome do titular da compra:\nCPF do titular da compra:\nNome do banco:\nChave Pix:\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Insucesso na Entrega (Solicitar dados)": """Olá,\n\nA transportadora nos informou está com dificuldades para finalizar a entrega. Peço por gentileza que confirme os dados abaixo e telefones ativos.\n\nRua:\nCep:\nNúmero:\nBairro:\nCidade:\nEstado:\nComplemento:\nPonto de Referência:\n2 telefones ativos:\n\nCaso não tenhamos retorno, o produto será devolvido ao nosso estoque e seguiremos com o reembolso da compra.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Nova Tentativa de Entrega": """Olá,\n\nEncaminhamos as informações para a transportadora que seguirá com uma nova tentativa de entrega que irá ocorrer no prazo de 5 a 7 dias úteis, podendo ocorrer antes.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Mercadoria em Trânsito": """Olá,\n\nDe acordo com o rastreio seu pedido já consta em trânsito, com previsão de ser finalizada até o dia............................., podendo ocorrer antes.\nSegue abaixo o link de rastreio:\n\nLink: .................................\nNota fiscal: ................\nTransportadora: ..........................\nPara rastrear basta utilizar o CPF do titular da compra.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Erro de Integração": """Olá,\n\nPedimos desculpas pelo transtorno. Tivemos um erro de integração em alguns pedidos, mas não se preocupe que a equipe de TI já está resolvendo e em breve será liberado.\nAgradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Erro de Integração com Atraso": """Olá,\nPedimos desculpas pela demora,\n\nTivemos um erro de integração em alguns pedidos, que acarretou em atrasos em toda operação de envio dos pedidos.\nSolicitamos prioridade nos pedidos em atraso, para que seja liberados o mais rápido possível.\n\nAgradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Extravio Aguardar Confirmação": """Olá,\n\nGostaríamos de informar que a transportadora identificou uma possível situação de extravio no seu pedido. Estamos trabalhando com empenho junto à transportadora para localizá-lo o mais rápido possível.\n\nPedimos a gentileza de aguardar um prazo de 48 horas para que possamos confirmar essa situação e dar um retorno definitivo.\nCaso o pedido não seja localizado dentro deste prazo, iniciaremos os procedimentos necessários para garantir sua satisfação.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Extravio com Opção de Reenvio": """Olá,\nPedimos desculpas por qualquer transtorno causado,\n\nConforme verificamos junto a transportadora, ocorreu o extravio de sua mercadoria durante o envio do item.\nLogo gostaríamos de saber como deseja seguir com a compra: Reenvio ou reembolso da mesma?\n\nAgradecemos a sua compreensão e, mais uma vez, pedimos desculpas pelo inconveniente causado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Fiscalização": """Olá,\n\nVerificamos que seu pedido está parado na fiscalização, mas não se preocupe já estamos em contato com a transportadora ............................. para agilizar a liberação.\nContudo, sua mercadoria sofrerá atrasos na entrega, mas não se preocupe, assim que a mercadoria for liberada, iremos solicitar máxima prioridade em sua entrega.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Item Faltante": """Olá,\n\nIremos solicitar ao nosso estoque que verifique se temos o item para envio separadamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Atraso na Entrega": """Olá,\n\nLamentamos pelo atraso ocorrido na entrega do seu pedido.\nEstamos em contato com a transportadora para verificar o ocorrido, solicitamos a previsão de entrega e prioridade para que seja finalizado o mais rápido possível.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Entrega (Serviços não inclusos)": """Olá,\n\nO transporte realizado pela Engage Eletro junto as transportadoras parceiras, abrange somente a entrega do produto na entrada (porta, portaria) do local indicado por você no momento da compra, não incluindo outros serviços como, montagem ou desmontagem de produtos, subida de escadas, transporte por guincho, instalação, entre outros.\n\nReforçamos que as entregas ocorrem de segunda à sexta em horário comercial.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Agradecimento": """Olá,\n\nQue bom, fico feliz que tenha dado tudo certo.\nSe você tiver alguma dúvida, preocupação ou sugestão, não hesite em entrar em contato conosco.\nEstamos aqui para ajudá-la da melhor maneira possível.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Código Coleta Domiciliar": """Olá,\n\nSegue abaixo o código para logística reversa do produto. Para utilizá-lo o produto deve está devidamente embalado no dia da coleta.\n\n......................................................\n(OBS1: O processo de logística reversa não gera custo algum para o cliente. Não é necessário cadastrar remetente ou destinatário, pois o código já possui todos os dados necessários).\n\nApós devolução e o produto retornar ao nosso Centro de Distribuição, seguiremos com as tratativas conforme o solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Embalagem Similar": """Olá,\n\nInformamos que, para garantir a integridade do produto durante o processo de devolução, recomendamos o uso de embalagens adequadas, como o envolvimento do produto em plástico bolha ou a utilização de camadas de papelão. Estas medidas ajudam a evitar danos adicionais ao item e asseguram uma devolução segura.\n\nAgradecemos pela compreensão e estamos à disposição para qualquer dúvida.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Termo para Troca Casada": """Olá,\n\nPara verificarmos a possibilidade de prosseguimento com à entrega do produto no momento da coleta, propomos a formalização por meio de um Termo de Acordo Extrajudicial que será encaminhado pelo nosso jurídico.\n\nO procedimento funciona da seguinte forma:\n- Encaminharemos o termo, que deverá ser assinado em todas as páginas, conforme o documento de identificação apresentado (RG, CNH, etc.);\n- O termo assinado, juntamente com a foto do documento de identificação, deve ser enviado de volta em até 48 horas;\n- Após o recebimento, nosso departamento jurídico fará a validação;\n- Com a validação concluída, daremos sequência às tratativas de envio e coleta dos produtos.\n\nPodemos seguir com esse procedimento?\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Recusa de Troca (Avaria)": """Conforme já informado anteriormente, é necessário realizar a troca do produto avariado, a fim de evitar problemas futuros fora do prazo de atendimento pela loja.\n\nDiante da sua recusa em efetuar a troca, entendemos que o(a) senhor(a) está ciente e assumindo o risco de permanecer com um produto que apresenta avaria física, abrindo mão de qualquer reivindicação posterior relacionada a esse dano, e isentando a loja de toda e qualquer responsabilidade futura quanto a esse aspecto.\n\nRessaltamos que o produto permanece coberto pela garantia do fabricante exclusivamente para defeitos de funcionamento, conforme previsto em garantia legal e contratual. Avarias físicas não são cobertas por essa garantia.\n\nPermanecemos à disposição para qualquer esclarecimento adicional.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    "Rastreio Indisponível (Jadlog)": """Gostaríamos de esclarecer que seu pedido foi despachado regularmente e dentro do prazo previsto pela modalidade de entrega escolhida.\nContudo, o sistema de rastreamento da transportadora está temporariamente indisponível, o que nos impede de fornecer informações atualizadas sobre a localização do pedido neste momento.\n\nJá notificamos a transportadora parceira responsável e estamos acompanhando de perto para que o sistema seja restabelecido o quanto antes.\n\nAgradecemos a compreensão e pedimos desculpas pelo transtorno causado.\nAtenciosamente,\n\nEquipe de atendimento Engage Eletro.\n{colaborador}"""
 }
-
 
 # ==========================================
 #           LÓGICA DAS PÁGINAS
 # ==========================================
 
 def pagina_pendencias():
-    st.header("🚚 Setor de Pendências / Logística")
+    st.header("🚚 Pendências Logísticas")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2])
     with col1:
         st.info("Configuração")
-        # Rótulo padronizado para "Colaborador"
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
         transp = st.selectbox("🚛 Transportadora:", lista_transportadoras, key="transp_p")
 
@@ -445,20 +131,18 @@ def pagina_pendencias():
             st.success("Copiado!")
 
 def pagina_sac():
-    st.header("🎧 Setor de SAC / Atendimento")
+    st.header("🎧 SAC / Atendimento")
     st.markdown("---")
     
     col1, col2 = st.columns([1, 2])
     with col1:
         st.info("Configuração SAC")
-        # AQUI NÃO TEM MAIS TRANSPORTADORA, SOMENTE COLABORADOR
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
 
     with col2:
         opcao = st.selectbox("Motivo:", list(modelos_sac.keys()), key="msg_s")
         texto_cru = modelos_sac[opcao]
         
-        # Apenas substitui o colaborador
         texto_final = texto_cru.replace("{colaborador}", colab)
         
         st.text_area("Texto Final:", value=texto_final, height=500)
@@ -468,7 +152,7 @@ def pagina_sac():
             st.success("Copiado!")
 
 # ==========================================
-#           ROTEAMENTO (PÁGINA ESCOLHIDA)
+#           ROTEAMENTO
 # ==========================================
 
 if pagina_escolhida == "Pendências Logísticas":
