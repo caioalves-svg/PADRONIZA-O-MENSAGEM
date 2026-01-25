@@ -21,6 +21,7 @@ def obter_data_hora_brasil():
     return datetime.now(fuso_br)
 
 def inicializar_banco():
+    # Se não existir, cria vazio
     if not os.path.exists(ARQUIVO_DADOS):
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
@@ -43,14 +44,25 @@ def salvar_registro(setor, colaborador, motivo, transportadora="-"):
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}. Tente apagar o arquivo .csv antigo.")
+        st.error(f"Erro ao salvar: {e}")
 
 def carregar_dados():
     inicializar_banco()
     try:
         return pd.read_csv(ARQUIVO_DADOS, sep=';', encoding='utf-8-sig')
     except:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
+
+def restaurar_backup(arquivo_upload):
+    """Função para recuperar dados perdidos via upload"""
+    try:
+        df_backup = pd.read_csv(arquivo_upload, sep=';', encoding='utf-8-sig')
+        # Salva sobrescrevendo o atual
+        df_backup.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
+        return True
+    except Exception as e:
+        st.error(f"Erro ao restaurar: {e}")
+        return False
 
 def converter_para_excel_csv(df):
     return df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
@@ -82,32 +94,25 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN CLEAN (SIDEBAR BRANCA)
+#      DESIGN CLEAN
 # ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    /* Fundo Geral */
     .stApp { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
 
-    /* BARRA LATERAL (BRANCA) */
+    /* Sidebar Branca */
     section[data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e2e8f0; }
-    section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] div { color: #334155 !important; }
+    section[data-testid="stSidebar"] * { color: #334155 !important; }
     
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
 
-    /* Cards (Caixas Brancas) */
     .css-card {
-        background-color: #ffffff;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 1rem;
+        background-color: #ffffff; padding: 2rem; border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; margin-bottom: 1rem;
     }
 
-    /* Inputs */
     .stSelectbox div[data-baseweb="select"] > div, .stTextInput input, .stDateInput input, .stTextArea textarea {
         background-color: #ffffff !important; border: 1px solid #94a3b8 !important; border-radius: 8px !important; color: #1e293b !important;
     }
@@ -117,7 +122,6 @@ st.markdown("""
         color: #334155; white-space: pre-wrap; margin-top: 10px; font-size: 14px;
     }
 
-    /* Botão Registrar */
     .botao-registrar .stButton button {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; color: white !important;
         border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; width: 100%;
@@ -125,7 +129,6 @@ st.markdown("""
     }
     .botao-registrar .stButton button:hover { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3); }
 
-    /* Botão Download */
     .stDownloadButton button {
         background-color: #3b82f6 !important; color: white !important;
         border: none !important; border-radius: 8px; font-weight: 600; width: 100%;
@@ -153,6 +156,18 @@ pagina_escolhida = st.sidebar.radio(
 st.sidebar.markdown("---")
 
 # ==========================================
+#      SISTEMA DE BACKUP (Para não perder dados)
+# ==========================================
+with st.sidebar.expander("📂 Backup e Restauração"):
+    st.info("O sistema reseta ao atualizar o código. Use isso para restaurar seus dados.")
+    arquivo_backup = st.file_uploader("Carregar histórico antigo (.csv)", type=["csv"])
+    if arquivo_backup is not None:
+        if st.button("Restaurar Dados"):
+            if restaurar_backup(arquivo_backup):
+                st.success("Histórico recuperado! Atualize a página.")
+                st.rerun()
+
+# ==========================================
 #      DADOS (Listas)
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
@@ -160,7 +175,7 @@ lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRO
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Dolores", "Cassia", "Juliana", "Tamara", "Rafaela", "Mylena", "Isadora", "Lorrayne", "Leticia", "Julia"])
 
 # ==========================================
-#      MENSAGENS PENDÊNCIAS (ATUALIZADAS COM {cliente})
+#      MENSAGENS PENDÊNCIAS
 # ==========================================
 modelos_pendencias = {
     "Ausente": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua: \nNúmero: \nBairro: \nCEP: \nCidade: \nEstado: \nPonto de Referência: \nRecebedor: \nTelefone: \n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
@@ -168,7 +183,7 @@ modelos_pendencias = {
     "Endereço Não Localizado": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria, porém, não localizou o endereço.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo:\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nAtenciosamente,\n{colaborador}""",
     "Área de Risco": """Olá, {cliente}! Tudo bem? Espero que sim!\n\nA transportadora {transportadora}, informou que está com dificuldades para realizar a entrega no endereço cadastrado no portal. Dessa forma, peço por gentileza que nos informe um endereço alternativo e também telefones ativos para melhor comunicação.\n\nCaso não possua um outro endereço, sua mercadoria ficará disponível para retirada da base da transportadora.\n\nQualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
     "Extravio / Avaria": """Olá, {cliente}! Tudo bem? Espero que sim!\n\nInfelizmente fomos informados pela transportadora {transportadora} que sua mercadoria foi furtada/avariada em transporte. Antes de tudo, pedimos desculpas pelo ocorrido e por todo transtorno causado.\n\nGostaríamos de saber se o senhor aceita o envio de uma nova mercadoria? O prazo para entrega é de 5 a 7 dias úteis, podendo ocorrer antes.\n\nNovamente, pedimos desculpas. Qualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
-    "Recusa de Entrega": """Olá, {cliente}!\n\nA transportadora {transportadora} informou que a entrega foi recusada. Houve algum problema com a apresentação da carga? O senhor deseja o cancelamento da compra?\n\nCaso não tenhamos retorno e o produto seja devolvido ao nosso estoque, seguiremos com o cancelamento da compra.\n\nQualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
+    "Recusa de Entrega": """Prezado cliente,\n\nA transportadora {transportadora} informou que a entrega foi recusada. Houve algum problema com a apresentação da carga? O senhor deseja o cancelamento da compra?\n\nCaso não tenhamos retorno e o produto seja devolvido ao nosso estoque, seguiremos com o cancelamento da compra.\n\nQualquer dúvida me coloco à disposição para ajudá-lo!\n\nAtenciosamente,\n{colaborador}""",
     "Solicitação de Barramento": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nSolicitamos à transportadora {transportadora} que barre a entrega da sua mercadoria. Caso tentem realizar a entrega, gentileza recusar o recebimento.\n\nAssim que a mercadoria der entrada em nosso estoque, liberamos o estorno.\n\nAtenciosamente,\n{colaborador}""",
     "Garantia de A a Z (Amazon)": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nDiante da abertura da Garantia A a Z, solicitamos à transportadora {transportadora} responsável que barre a entrega e aguardaremos a confirmação da suspensão da entrega, a fim de possibilitar a liberação do reembolso pela plataforma.\n\nAtenciosamente,\n{colaborador}""",
     "Em caso de Reembolso": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nO cancelamento foi liberado conforme solicitado. O reembolso é realizado de acordo com a forma de pagamento da compra:\n\nPara pagamentos com boleto, o reembolso será feito na conta bancária especificada pelo cliente ou como um vale-presente. Se todos os dados da sua conta bancária estiverem corretos, o reembolso pode levar até 3 dias úteis para constar na conta.\n\nCaso você tenha pago com cartão de crédito, dependendo da data de fechamento e vencimento do seu cartão, o reembolso pode levar de uma a duas faturas.\n\nPara pagamento em PIX, o reembolso será realizado na conta PIX em um dia útil.\n\nAtenciosamente,\n{colaborador}""",
@@ -177,9 +192,6 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
-# ==========================================
-#      MENSAGENS SAC (ATUALIZADAS COM {cliente})
-# ==========================================
 modelos_sac = {
     "Solicitação de Coleta": """Olá, {cliente}!\n\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "Barrar Entrega na Transportadora": """Olá, {cliente}!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -227,7 +239,6 @@ def pagina_pendencias():
         st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
-        # NOVO CAMPO: NOME DO CLIENTE
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_p")
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
         
@@ -244,7 +255,6 @@ def pagina_pendencias():
         # Lógica para tratar nome vazio
         nome_cliente_final = nome_cliente if nome_cliente else "cliente"
         
-        # Substituições
         texto_final = texto_cru.replace("{transportadora}", transp)\
                                .replace("{colaborador}", colab)\
                                .replace("{cliente}", nome_cliente_final)
@@ -275,7 +285,6 @@ def pagina_sac():
         st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
-        # NOVO CAMPO: NOME DO CLIENTE
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_s")
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         
@@ -333,7 +342,6 @@ def pagina_sac():
         st.subheader("2. Visualização")
         texto_cru = modelos_sac[opcao]
         
-        # Lógica para tratar nome vazio
         nome_cliente_final = nome_cliente if nome_cliente else "cliente"
         
         texto_final = texto_cru.replace("{colaborador}", colab)\
@@ -367,22 +375,16 @@ def pagina_dashboard():
     st.markdown("Visão estratégica dos atendimentos.")
     st.markdown("---")
 
-    if not os.path.exists(ARQUIVO_DADOS):
-        st.warning("Ainda não há dados registrados.")
-        return
+    # Sempre carrega o DF (mesmo vazio)
+    df = carregar_dados()
 
-    try:
-        df = carregar_dados()
-        if df.empty:
-            st.warning("O arquivo de dados está vazio.")
-            return
-
-        # --- SEÇÃO DE EXPORTAÇÃO ---
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("📥 Exportação")
-        
-        tipo_export = st.sidebar.selectbox("Filtrar planilha por:", ["Geral (Todos)", "Apenas SAC", "Apenas Pendências"])
-        
+    # --- SEÇÃO DE EXPORTAÇÃO ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📥 Exportação")
+    
+    tipo_export = st.sidebar.selectbox("Filtrar planilha por:", ["Geral (Todos)", "Apenas SAC", "Apenas Pendências"])
+    
+    if not df.empty:
         df_export = df.copy()
         if tipo_export == "Apenas SAC":
             df_export = df_export[df_export["Setor"] == "SAC"]
@@ -399,41 +401,54 @@ def pagina_dashboard():
             file_name=nome_arquivo,
             mime='text/csv',
         )
+    else:
+        st.sidebar.info("Sem dados para exportar.")
 
-        # --- FILTROS VISUAIS ---
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("Filtros do Painel")
-        
+    # --- FILTROS VISUAIS ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Filtros do Painel")
+    
+    # Tratamento de erro caso o DF esteja vazio
+    if not df.empty:
         df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
-        
         data_min = df["Data_Filtro"].min().date()
         data_max = df["Data_Filtro"].max().date()
-        
-        c_data1, c_data2 = st.sidebar.columns(2)
-        # FORMATO BRASILEIRO NO FILTRO
-        data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
-        data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
-        
-        mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
-        df_filtrado = df.loc[mask]
-        
-        if df_filtrado.empty:
-            st.warning("Nenhum dado encontrado para o período.")
-            return
+    else:
+        data_min = datetime.now().date()
+        data_max = datetime.now().date()
+    
+    c_data1, c_data2 = st.sidebar.columns(2)
+    data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
+    data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
+    
+    # Se DF estiver vazio, só mostra aviso mas não trava
+    if df.empty:
+        st.warning("Ainda não há dados registrados. Use o menu lateral para restaurar um backup ou comece a registrar.")
+        return
 
-        # KPIs
+    # Filtragem
+    mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
+    df_filtrado = df.loc[mask]
+    
+    if df_filtrado.empty:
+        st.warning("Nenhum dado encontrado para o período.")
+        # Mostra KPIs zerados em vez de travar
+        total, sac_total, pend_total = 0, 0, 0
+    else:
         total = len(df_filtrado)
         sac_total = len(df_filtrado[df_filtrado["Setor"] == "SAC"])
         pend_total = len(df_filtrado[df_filtrado["Setor"] == "Pendência"])
-        
-        kpi1, kpi2, kpi3 = st.columns(3)
-        kpi1.metric("Total", total, border=True)
-        kpi2.metric("SAC", sac_total, border=True)
-        kpi3.metric("Pendências", pend_total, border=True)
 
-        st.markdown("##")
+    # KPIs
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric("Total", total, border=True)
+    kpi2.metric("SAC", sac_total, border=True)
+    kpi3.metric("Pendências", pend_total, border=True)
 
-        # GRÁFICOS
+    st.markdown("##")
+
+    # GRÁFICOS (Só renderiza se tiver dados)
+    if not df_filtrado.empty:
         c1, c2 = st.columns(2)
         with c1:
             st.subheader("📊 Motivos - SAC")
@@ -441,14 +456,7 @@ def pagina_dashboard():
             if not df_sac.empty:
                 contagem = df_sac['Motivo'].value_counts().reset_index()
                 contagem.columns = ['Motivo', 'Quantidade']
-                fig_sac = px.bar(
-                    contagem.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#3b82f6']
-                )
+                fig_sac = px.bar(contagem.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#3b82f6'])
                 fig_sac.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
@@ -460,14 +468,7 @@ def pagina_dashboard():
             if not df_pend.empty:
                 contagem_p = df_pend['Motivo'].value_counts().reset_index()
                 contagem_p.columns = ['Motivo', 'Quantidade']
-                fig_pend = px.bar(
-                    contagem_p.sort_values('Quantidade', ascending=True),
-                    x='Quantidade', 
-                    y='Motivo',
-                    orientation='h',
-                    text='Quantidade',
-                    color_discrete_sequence=['#0ea5e9']
-                )
+                fig_pend = px.bar(contagem_p.sort_values('Quantidade', ascending=True), x='Quantidade', y='Motivo', orientation='h', text='Quantidade', color_discrete_sequence=['#0ea5e9'])
                 fig_pend.update_layout(xaxis_title=None, yaxis_title=None, height=400)
                 st.plotly_chart(fig_pend, use_container_width=True)
             else:
@@ -477,9 +478,6 @@ def pagina_dashboard():
         st.subheader("📋 Base de Dados (Últimos 50 registros)")
         df_show = df_filtrado.drop(columns=["Data_Filtro"], errors='ignore')
         st.dataframe(df_show.sort_values(by=["Data", "Hora"], ascending=False).head(50), use_container_width=True, hide_index=True)
-
-    except Exception as e:
-        st.error(f"Erro no Dashboard: {e}. Tente apagar o arquivo .csv antigo.")
 
 # ==========================================
 #           ROTEAMENTO
