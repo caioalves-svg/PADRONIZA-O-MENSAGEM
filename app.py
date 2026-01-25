@@ -21,7 +21,6 @@ def obter_data_hora_brasil():
     return datetime.now(fuso_br)
 
 def inicializar_banco():
-    # Se não existir, cria vazio
     if not os.path.exists(ARQUIVO_DADOS):
         df = pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
@@ -44,20 +43,18 @@ def salvar_registro(setor, colaborador, motivo, transportadora="-"):
         df = pd.concat([df, pd.DataFrame([nova_linha])], ignore_index=True)
         df.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
+        st.error(f"Erro ao salvar: {e}. Tente apagar o arquivo .csv antigo.")
 
 def carregar_dados():
     inicializar_banco()
     try:
         return pd.read_csv(ARQUIVO_DADOS, sep=';', encoding='utf-8-sig')
     except:
-        return pd.DataFrame(columns=["Data", "Hora", "Setor", "Colaborador", "Motivo", "Transportadora"])
+        return pd.DataFrame()
 
 def restaurar_backup(arquivo_upload):
-    """Função para recuperar dados perdidos via upload"""
     try:
         df_backup = pd.read_csv(arquivo_upload, sep=';', encoding='utf-8-sig')
-        # Salva sobrescrevendo o atual
         df_backup.to_csv(ARQUIVO_DADOS, index=False, sep=';', encoding='utf-8-sig')
         return True
     except Exception as e:
@@ -94,7 +91,7 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN CLEAN
+#      DESIGN CLEAN (SEM BLOCOS VAZIOS)
 # ==========================================
 st.markdown("""
 <style>
@@ -108,20 +105,18 @@ st.markdown("""
     
     h1, h2, h3 { color: #0f172a !important; font-weight: 700; }
 
-    .css-card {
-        background-color: #ffffff; padding: 2rem; border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; margin-bottom: 1rem;
-    }
-
+    /* Inputs Limpos */
     .stSelectbox div[data-baseweb="select"] > div, .stTextInput input, .stDateInput input, .stTextArea textarea {
         background-color: #ffffff !important; border: 1px solid #94a3b8 !important; border-radius: 8px !important; color: #1e293b !important;
     }
     
+    /* Caixa de Visualização */
     .preview-box {
-        background-color: #f1f5f9; border-left: 5px solid #3b82f6; border-radius: 4px; padding: 20px;
-        color: #334155; white-space: pre-wrap; margin-top: 10px; font-size: 14px;
+        background-color: #ffffff; border-left: 5px solid #3b82f6; border: 1px solid #e2e8f0; border-radius: 4px; padding: 20px;
+        color: #334155; white-space: pre-wrap; margin-top: 10px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
+    /* Botão Registrar */
     .botao-registrar .stButton button {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; color: white !important;
         border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; width: 100%;
@@ -129,6 +124,7 @@ st.markdown("""
     }
     .botao-registrar .stButton button:hover { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(16, 185, 129, 0.3); }
 
+    /* Botão Download */
     .stDownloadButton button {
         background-color: #3b82f6 !important; color: white !important;
         border: none !important; border-radius: 8px; font-weight: 600; width: 100%;
@@ -156,18 +152,6 @@ pagina_escolhida = st.sidebar.radio(
 st.sidebar.markdown("---")
 
 # ==========================================
-#      SISTEMA DE BACKUP (Para não perder dados)
-# ==========================================
-with st.sidebar.expander("📂 Backup e Restauração"):
-    st.info("O sistema reseta ao atualizar o código. Use isso para restaurar seus dados.")
-    arquivo_backup = st.file_uploader("Carregar histórico antigo (.csv)", type=["csv"])
-    if arquivo_backup is not None:
-        if st.button("Restaurar Dados"):
-            if restaurar_backup(arquivo_backup):
-                st.success("Histórico recuperado! Atualize a página.")
-                st.rerun()
-
-# ==========================================
 #      DADOS (Listas)
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
@@ -192,6 +176,9 @@ modelos_pendencias = {
     "Reenvio de Produto": """Olá, {cliente}! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
+# ==========================================
+#      MENSAGENS SAC
+# ==========================================
 modelos_sac = {
     "Solicitação de Coleta": """Olá, {cliente}!\n\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "Barrar Entrega na Transportadora": """Olá, {cliente}!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -236,7 +223,6 @@ def pagina_pendencias():
     col1, col2 = st.columns([1, 1.5], gap="medium")
     
     with col1:
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_p")
@@ -245,14 +231,11 @@ def pagina_pendencias():
         st.markdown("---")
         st.subheader("2. Motivo")
         opcao = st.selectbox("Selecione o caso:", list(modelos_pendencias.keys()), key="msg_p")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("3. Visualização")
         texto_cru = modelos_pendencias[opcao]
         
-        # Lógica para tratar nome vazio
         nome_cliente_final = nome_cliente if nome_cliente else "cliente"
         
         texto_final = texto_cru.replace("{transportadora}", transp)\
@@ -269,7 +252,6 @@ def pagina_pendencias():
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 #           PÁGINA SAC
@@ -282,7 +264,6 @@ def pagina_sac():
     dados = {}
     
     with col1:
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_s")
@@ -335,10 +316,8 @@ def pagina_sac():
             dados["{estado}"] = st.text_input("Estado:")
             dados["{complemento}"] = st.text_input("Complemento (opcional):", value="")
             dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("2. Visualização")
         texto_cru = modelos_sac[opcao]
         
@@ -365,7 +344,6 @@ def pagina_sac():
             copiar_para_clipboard(texto_final)
             st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 #           DASHBOARD
@@ -374,6 +352,16 @@ def pagina_dashboard():
     st.title("📊 Dashboard Gerencial")
     st.markdown("Visão estratégica dos atendimentos.")
     st.markdown("---")
+
+    # RESTAURAÇÃO DE BACKUP (SÓ NO DASHBOARD)
+    with st.expander("📂 Backup e Restauração"):
+        st.info("O sistema reseta ao atualizar o código. Use isso para restaurar seus dados.")
+        arquivo_backup = st.file_uploader("Carregar histórico antigo (.csv)", type=["csv"])
+        if arquivo_backup is not None:
+            if st.button("Restaurar Dados"):
+                if restaurar_backup(arquivo_backup):
+                    st.success("Histórico recuperado! Atualize a página.")
+                    st.rerun()
 
     # Sempre carrega o DF (mesmo vazio)
     df = carregar_dados()
@@ -423,7 +411,7 @@ def pagina_dashboard():
     
     # Se DF estiver vazio, só mostra aviso mas não trava
     if df.empty:
-        st.warning("Ainda não há dados registrados. Use o menu lateral para restaurar um backup ou comece a registrar.")
+        st.warning("Ainda não há dados registrados. Use a área de Backup acima para restaurar ou comece a registrar.")
         return
 
     # Filtragem
