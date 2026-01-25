@@ -91,7 +91,7 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DESIGN CLEAN (SEM BLOCOS VAZIOS)
+#      DESIGN CLEAN (SIDEBAR BRANCA)
 # ==========================================
 st.markdown("""
 <style>
@@ -223,20 +223,24 @@ def pagina_pendencias():
     col1, col2 = st.columns([1, 1.5], gap="medium")
     
     with col1:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
+        # NOME DO CLIENTE OBRIGATÓRIO (SERÁ VALIDADO NO BOTÃO)
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_p")
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
         
         st.markdown("---")
         st.subheader("2. Motivo")
         opcao = st.selectbox("Selecione o caso:", list(modelos_pendencias.keys()), key="msg_p")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("3. Visualização")
         texto_cru = modelos_pendencias[opcao]
         
-        nome_cliente_final = nome_cliente if nome_cliente else "cliente"
+        nome_cliente_final = nome_cliente if nome_cliente else "[NOME DO CLIENTE]"
         
         texto_final = texto_cru.replace("{transportadora}", transp)\
                                .replace("{colaborador}", colab)\
@@ -246,11 +250,16 @@ def pagina_pendencias():
         
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
+        # LÓGICA DE VALIDAÇÃO (FEATURE 5)
         if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
-            salvar_registro("Pendência", colab, opcao, transp)
-            st.toast("Registrado com sucesso!", icon="✨")
-            copiar_para_clipboard(texto_final)
-            st.code(texto_final, language="text")
+            if not nome_cliente.strip():
+                st.error("⚠️ Por favor, preencha o Nome do Cliente antes de registrar.")
+            else:
+                salvar_registro("Pendência", colab, opcao, transp)
+                st.toast("Registrado com sucesso!", icon="✨")
+                copiar_para_clipboard(texto_final)
+                st.code(texto_final, language="text")
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -264,12 +273,12 @@ def pagina_sac():
     dados = {}
     
     with col1:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
         nome_cliente = st.text_input("Nome do Cliente:", key="nome_cliente_s")
         opcao = st.selectbox("Qual o motivo do contato?", list(modelos_sac.keys()), key="msg_s")
         
-        # Campos Dinâmicos (Mantidos)
         if "Solicitação de Coleta" in opcao:
             st.info("🚚 Endereço")
             dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):")
@@ -316,12 +325,14 @@ def pagina_sac():
             dados["{estado}"] = st.text_input("Estado:")
             dados["{complemento}"] = st.text_input("Complemento (opcional):", value="")
             dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
         st.subheader("2. Visualização")
         texto_cru = modelos_sac[opcao]
         
-        nome_cliente_final = nome_cliente if nome_cliente else "cliente"
+        nome_cliente_final = nome_cliente if nome_cliente else "[NOME DO CLIENTE]"
         
         texto_final = texto_cru.replace("{colaborador}", colab)\
                                .replace("{cliente}", nome_cliente_final)
@@ -338,11 +349,16 @@ def pagina_sac():
         if "{transportadora}" in dados:
             transp_usada = dados["{transportadora}"]
             
+        # LÓGICA DE VALIDAÇÃO (FEATURE 5)
         if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
-            salvar_registro("SAC", colab, opcao, transp_usada)
-            st.toast("Registrado com sucesso!", icon="✨")
-            copiar_para_clipboard(texto_final)
-            st.code(texto_final, language="text")
+            if not nome_cliente.strip():
+                st.error("⚠️ Por favor, preencha o Nome do Cliente antes de registrar.")
+            else:
+                salvar_registro("SAC", colab, opcao, transp_usada)
+                st.toast("Registrado com sucesso!", icon="✨")
+                copiar_para_clipboard(texto_final)
+                st.code(texto_final, language="text")
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -353,7 +369,7 @@ def pagina_dashboard():
     st.markdown("Visão estratégica dos atendimentos.")
     st.markdown("---")
 
-    # RESTAURAÇÃO DE BACKUP (SÓ NO DASHBOARD)
+    # RESTAURAÇÃO DE BACKUP
     with st.expander("📂 Backup e Restauração"):
         st.info("O sistema reseta ao atualizar o código. Use isso para restaurar seus dados.")
         arquivo_backup = st.file_uploader("Carregar histórico antigo (.csv)", type=["csv"])
@@ -363,10 +379,9 @@ def pagina_dashboard():
                     st.success("Histórico recuperado! Atualize a página.")
                     st.rerun()
 
-    # Sempre carrega o DF (mesmo vazio)
     df = carregar_dados()
 
-    # --- SEÇÃO DE EXPORTAÇÃO ---
+    # --- EXPORTAÇÃO ---
     st.sidebar.markdown("---")
     st.sidebar.subheader("📥 Exportação")
     
@@ -380,7 +395,6 @@ def pagina_dashboard():
             df_export = df_export[df_export["Setor"] == "Pendência"]
             
         csv = converter_para_excel_csv(df_export)
-        
         nome_arquivo = f'relatorio_{tipo_export.split()[0].lower()}_{datetime.now().strftime("%d-%m-%Y")}.csv'
         
         st.sidebar.download_button(
@@ -396,7 +410,6 @@ def pagina_dashboard():
     st.sidebar.markdown("---")
     st.sidebar.subheader("Filtros do Painel")
     
-    # Tratamento de erro caso o DF esteja vazio
     if not df.empty:
         df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
         data_min = df["Data_Filtro"].min().date()
@@ -409,25 +422,21 @@ def pagina_dashboard():
     data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
     data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
     
-    # Se DF estiver vazio, só mostra aviso mas não trava
     if df.empty:
-        st.warning("Ainda não há dados registrados. Use a área de Backup acima para restaurar ou comece a registrar.")
+        st.warning("Ainda não há dados registrados.")
         return
 
-    # Filtragem
     mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
     df_filtrado = df.loc[mask]
     
     if df_filtrado.empty:
         st.warning("Nenhum dado encontrado para o período.")
-        # Mostra KPIs zerados em vez de travar
         total, sac_total, pend_total = 0, 0, 0
     else:
         total = len(df_filtrado)
         sac_total = len(df_filtrado[df_filtrado["Setor"] == "SAC"])
         pend_total = len(df_filtrado[df_filtrado["Setor"] == "Pendência"])
 
-    # KPIs
     kpi1, kpi2, kpi3 = st.columns(3)
     kpi1.metric("Total", total, border=True)
     kpi2.metric("SAC", sac_total, border=True)
@@ -435,8 +444,32 @@ def pagina_dashboard():
 
     st.markdown("##")
 
-    # GRÁFICOS (Só renderiza se tiver dados)
+    # GRÁFICOS
     if not df_filtrado.empty:
+        # NOVO GRÁFICO (FEATURE 3): Análise de Transportadoras
+        st.subheader("🚚 Análise de Transportadoras (Ofensores)")
+        # Filtra apenas onde tem transportadora válida
+        df_transp = df_filtrado[df_filtrado['Transportadora'].notnull() & (df_filtrado['Transportadora'] != "-")]
+        
+        if not df_transp.empty:
+            # Agrupa por Transportadora e Motivo
+            df_grouped = df_transp.groupby(['Transportadora', 'Motivo']).size().reset_index(name='Quantidade')
+            
+            fig_transp = px.bar(
+                df_grouped, 
+                x="Transportadora", 
+                y="Quantidade", 
+                color="Motivo", 
+                title="Problemas por Transportadora (Visão Geral)",
+                text_auto=True
+            )
+            fig_transp.update_layout(height=500)
+            st.plotly_chart(fig_transp, use_container_width=True)
+        else:
+            st.info("Nenhum dado de transportadora registrado neste período.")
+
+        st.markdown("---")
+
         c1, c2 = st.columns(2)
         with c1:
             st.subheader("📊 Motivos - SAC")
