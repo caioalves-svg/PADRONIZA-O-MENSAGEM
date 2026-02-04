@@ -48,32 +48,15 @@ def conectar_google_sheets():
         st.error(f"Erro de Conexão: {e}")
         return None
 
-def carregar_dados():
-    sheet = conectar_google_sheets()
-    if sheet:
-        try:
-            dados = sheet.get_all_records()
-            if dados:
-                return pd.DataFrame(dados)
-            else:
-                return pd.DataFrame(columns=["Data", "Hora", "Dia_Semana", "Setor", "Colaborador", "Motivo", "Portal", "Nota_Fiscal", "Numero_Pedido", "Motivo_CRM", "Transportadora"])
-        except Exception as e:
-            st.error(f"Erro ao ler dados: {e}")
-    return pd.DataFrame()
-
-def obter_dia_semana_pt(dt):
-    dias = {0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira", 3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo"}
-    return dias[dt.weekday()]
-
 def salvar_registro(setor, colaborador, motivo, portal, nf, numero_pedido, motivo_crm, transportadora="-"):
     sheet = conectar_google_sheets()
     if sheet:
-        agora = obter_data_hora_brasil()
-        str_nf = str(nf)
-        str_pedido = str(numero_pedido)
-        dia_pt = obter_dia_semana_pt(agora)
-        nova_linha = [agora.strftime("%d/%m/%Y"), agora.strftime("%H:%M:%S"), dia_pt, setor, colaborador, motivo, portal, str_nf, str_pedido, motivo_crm, transportadora]
         try:
+            agora = obter_data_hora_brasil()
+            str_nf = str(nf)
+            str_pedido = str(numero_pedido)
+            dia_pt = obter_dia_semana_pt(agora)
+            nova_linha = [agora.strftime("%d/%m/%Y"), agora.strftime("%H:%M:%S"), dia_pt, setor, colaborador, motivo, portal, str_nf, str_pedido, motivo_crm, transportadora]
             sheet.append_row(nova_linha)
             return True
         except Exception as e:
@@ -81,15 +64,29 @@ def salvar_registro(setor, colaborador, motivo, portal, nf, numero_pedido, motiv
             return False
     return False
 
+def obter_dia_semana_pt(dt):
+    dias = {0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira", 3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo"}
+    return dias[dt.weekday()]
+
+def obter_data_hora_brasil():
+    fuso_br = pytz.timezone('America/Sao_Paulo')
+    return datetime.now(fuso_br)
+
+def carregar_dados():
+    sheet = conectar_google_sheets()
+    if sheet:
+        try:
+            dados = sheet.get_all_records()
+            if dados: return pd.DataFrame(dados)
+            else: return pd.DataFrame(columns=["Data", "Hora", "Dia_Semana", "Setor", "Colaborador", "Motivo", "Portal", "Nota_Fiscal", "Numero_Pedido", "Motivo_CRM", "Transportadora"])
+        except Exception as e: st.error(f"Erro ao ler dados: {e}")
+    return pd.DataFrame()
+
 def converter_para_excel_csv(df):
     df_export = df.copy()
     df_export['Nota_Fiscal'] = df_export['Nota_Fiscal'].astype(str)
     df_export['Numero_Pedido'] = df_export['Numero_Pedido'].astype(str)
     return df_export.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
-
-def obter_data_hora_brasil():
-    fuso_br = pytz.timezone('America/Sao_Paulo')
-    return datetime.now(fuso_br)
 
 def copiar_para_clipboard(texto):
     texto_json = json.dumps(texto)
@@ -111,7 +108,7 @@ def copiar_para_clipboard(texto):
     components.html(js, height=0, width=0)
 
 # ==========================================
-#      DADOS E LISTAS
+#      DADOS
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Telliane", "Isadora", "Lorrayne", "Leticia", "Julia"])
@@ -120,7 +117,7 @@ lista_portais = sorted(["ALIEXPRESS", "AMAZON - EXTREMA", "AMAZON | ENGAGE LOG",
 lista_motivo_crm = sorted(["ACAREAÇÃO", "ACORDO CLIENTE", "ALTERAÇÃO DE NOTA FISCAL", "AREA DE RISCO", "AREA NÃO ATENDIDA", "ARREPENDIMENTO", "ARREPENDIMENTO - DEVOLUÇÃO AMAZON", "ARREPENDIMENTO POR QUALIDADE DO PRODUTO", "ATRASO NA ENTREGA", "ATRASO NA EXPEDIÇÃO", "AUSENTE", "AVARIA", "CANCELAMENTO FORÇADO PELO PORTAL", "CASO JURIDÍCO", "CORREÇÃO DE ENDEREÇO", "DEFEITO", "DESCONHECIDO", "DESCONTO", "DEVOLUÇÃO SEM INFORMAÇÃO", "ENDEREÇO NÃO LOCALIZADO", "ENTREGA C/ AVARIA FORÇADA", "ENTREGUE E CANCELADO", "ERRO DE CADASTRO", "ERRO DE EXPEDIÇÃO", "ERRO DE INTEGRAÇÃO DE FATURAMENTO", "ESTOQUE FALTANTE", "EXTRAVIO", "FALTA DE ETIQUETA ENVIAS", "INSUCESSO NA ENTREGA", "ITEM FALTANTE", "MERCADORIA RETIDA", "MUDOU-SE", "NOTA RETIDA", "PAGAMENTO/REEMBOLSO", "RECOBRANÇA DE CLIENTE", "RECUSA", "RETENÇÃO", "SEM ABERTURA DE CRM", "SEM RASTREIO", "SUSPEITA DE FRAUDE", "TROCA DE ETIQUETA", "ZONA RURAL"])
 
 # ==========================================
-#      SCRIPTS
+#      MODELOS DE TEXTO
 # ==========================================
 modelos_pendencias = {
     "ATENDIMENTO DIGISAC": "", "2° TENTATIVA DE CONTATO": "", "3° TENTATIVA DE CONTATO": "",
@@ -224,14 +221,45 @@ pagina_escolhida = st.sidebar.radio("Navegação:", ("Pendências Logísticas", 
 st.sidebar.markdown("---")
 
 # ==========================================
+#           CALLBACKS (LÓGICA SEGURA)
+# ==========================================
+def registrar_e_limpar(setor, texto_pronto):
+    # Salva o texto pronto na memória persistente ANTES de limpar os campos
+    sufixo = "_p" if setor == "Pendência" else "_s"
+    st.session_state[f'texto_persistente{sufixo}'] = texto_pronto
+    
+    # Recupera dados do Session State para salvar no Sheets
+    colab = st.session_state.get(f"colab{sufixo}")
+    motivo_opcao = st.session_state.get(f"msg{sufixo}")
+    portal = st.session_state.get(f"portal{sufixo}")
+    nf = st.session_state.get(f"nf{sufixo}")
+    pedido = st.session_state.get(f"ped{sufixo}")
+    crm = st.session_state.get(f"crm{sufixo}")
+    
+    transp = st.session_state.get(f"transp_p") if setor == "Pendência" else st.session_state.get("tr_ent_sac_conf", "-")
+    if setor == "SAC" and transp == "-":
+        transp = st.session_state.get("tr_trans_sac", st.session_state.get("tr_fisc_sac", "-"))
+
+    sucesso = salvar_registro(setor, colab, motivo_opcao, portal, nf, pedido, crm, transp)
+    
+    if sucesso:
+        st.session_state[f'sucesso_recente{sufixo}'] = True
+        
+        # Limpa campos
+        campos_para_limpar = [f"cliente{sufixo}", f"nf{sufixo}", f"ped{sufixo}"]
+        if setor == "SAC":
+            campos_para_limpar.extend(["end_coleta_sac", "fab_in_7", "cont_assist_in_7", "data_comp_out_7", "nf_out_7", "link_out_7", "cod_post_sac", "tr_ent_sac_conf", "data_ent_sac", "fab_glp", "site_glp", "val_desc", "prev_ent", "link_rast", "nf_rast", "tr_trans_sac", "tr_fisc_sac", "rua_ins", "cep_ins", "num_ins", "bair_ins", "cid_ins", "uf_ins", "comp_ins", "ref_ins", "data_limite_recusa", "data_entrega_canc_ent"])
+            
+        for campo in campos_para_limpar:
+            if campo in st.session_state:
+                st.session_state[campo] = ""
+
+# ==========================================
 #           PÁGINA PENDÊNCIAS
 # ==========================================
 def pagina_pendencias():
     if st.session_state.get('sucesso_recente_p'):
         st.toast("Registrado e Limpo!", icon="✅")
-        st.info("📝 Último texto gerado:")
-        st.code(st.session_state['ultimo_texto_p'], language="text")
-        copiar_para_clipboard(st.session_state['ultimo_texto_p'])
         st.session_state['sucesso_recente_p'] = False
 
     st.title("🚚 Pendências Logísticas")
@@ -257,6 +285,7 @@ def pagina_pendencias():
         assinatura_nome = colab if "AMAZON" not in portal else ""
         texto_base = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
         if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
+        
         motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO"]
         if opcao not in motivos_sem_texto:
             ped_str = numero_pedido if numero_pedido else "..."
@@ -273,17 +302,15 @@ def pagina_pendencias():
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
-            sucesso = salvar_registro("Pendência", colab, opcao, portal, nota_fiscal, numero_pedido, motivo_crm, transp)
-            if sucesso:
-                st.session_state['ultimo_texto_p'] = texto_final
-                st.session_state['sucesso_recente_p'] = True
-                
-                # LIMPEZA AUTOMÁTICA
-                for k in ["cliente_p", "nf_p", "ped_p"]:
-                    if k in st.session_state: st.session_state[k] = ""
-                st.rerun()
+        # Passa o texto_final calculado como argumento
+        st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência", texto_final))
         st.markdown('</div>', unsafe_allow_html=True)
+
+        if 'texto_persistente_p' in st.session_state:
+            st.markdown("---")
+            st.info("📝 Último texto registrado (Cópia Segura):")
+            st.code(st.session_state['texto_persistente_p'], language="text")
+            copiar_para_clipboard(st.session_state['texto_persistente_p'])
 
 # ==========================================
 #           PÁGINA SAC
@@ -291,9 +318,6 @@ def pagina_pendencias():
 def pagina_sac():
     if st.session_state.get('sucesso_recente_s'):
         st.toast("Registrado e Limpo!", icon="✅")
-        st.info("📝 Último texto gerado:")
-        st.code(st.session_state['ultimo_texto_s'], language="text")
-        copiar_para_clipboard(st.session_state['ultimo_texto_s'])
         st.session_state['sucesso_recente_s'] = False
 
     st.title("🎧 SAC / Atendimento")
@@ -395,10 +419,8 @@ def pagina_sac():
             else:
                 texto_final = f"{frase_pedido}\n\n{texto_base}"
         elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
-             # Lógica "Raw" para evitar IndexError
              raw_text = modelos_sac["BARRAR ENTREGA NA TRANSPORTADORA"]
              corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
-             
              ped_str = numero_pedido if numero_pedido else "......"
              texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
         elif opcao in scripts_martins:
@@ -417,19 +439,15 @@ def pagina_sac():
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        transp_usada = dados.get("{transportadora}", "-")
-        if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
-            sucesso = salvar_registro("SAC", colab, opcao, portal, nota_fiscal, numero_pedido, motivo_crm, transp_usada)
-            if sucesso:
-                st.session_state['ultimo_texto_s'] = texto_final
-                st.session_state['sucesso_recente_s'] = True
-                
-                # LIMPEZA AUTOMÁTICA
-                keys_clean = ["cliente_s", "nf_s", "ped_s", "end_coleta_sac", "fab_in_7", "cont_assist_in_7", "data_comp_out_7", "nf_out_7", "link_out_7", "cod_post_sac", "tr_ent_sac_conf", "data_ent_sac", "fab_glp", "site_glp", "val_desc", "prev_ent", "link_rast", "nf_rast", "tr_trans_sac", "tr_fisc_sac", "rua_ins", "cep_ins", "num_ins", "bair_ins", "cid_ins", "uf_ins", "comp_ins", "ref_ins", "data_limite_recusa", "data_entrega_canc_ent"]
-                for k in keys_clean:
-                    if k in st.session_state: st.session_state[k] = ""
-                st.rerun()
+        # Passa o texto_final (JÁ preenchido) para o callback
+        st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC", texto_final))
         st.markdown('</div>', unsafe_allow_html=True)
+
+        if 'texto_persistente_s' in st.session_state:
+            st.markdown("---")
+            st.info("📝 Último texto registrado (Cópia Segura):")
+            st.code(st.session_state['texto_persistente_s'], language="text")
+            copiar_para_clipboard(st.session_state['texto_persistente_s'])
 
 # ==========================================
 #           DASHBOARD
