@@ -223,8 +223,12 @@ st.sidebar.markdown("---")
 # ==========================================
 #           CALLBACKS (LÓGICA SEGURA)
 # ==========================================
-def registrar_e_limpar(setor):
+def registrar_e_limpar(setor, texto_pronto):
+    # Salva o texto pronto na memória persistente ANTES de limpar os campos
     sufixo = "_p" if setor == "Pendência" else "_s"
+    st.session_state[f'texto_persistente{sufixo}'] = texto_pronto
+    
+    # Recupera dados do Session State para salvar no Sheets
     colab = st.session_state.get(f"colab{sufixo}")
     motivo_opcao = st.session_state.get(f"msg{sufixo}")
     portal = st.session_state.get(f"portal{sufixo}")
@@ -254,6 +258,10 @@ def registrar_e_limpar(setor):
 #           PÁGINA PENDÊNCIAS
 # ==========================================
 def pagina_pendencias():
+    if st.session_state.get('sucesso_recente_p'):
+        st.toast("Registrado e Limpo!", icon="✅")
+        st.session_state['sucesso_recente_p'] = False
+
     st.title("🚚 Pendências Logísticas")
     st.markdown("---")
     col1, col2 = st.columns([1, 1.5], gap="medium")
@@ -290,23 +298,14 @@ def pagina_pendencias():
         else:
             texto_final = ""
         
-        # --- ÁREA DE SUCESSO / CÓPIA PERMANENTE ---
-        # Se houve sucesso recente, mostra o aviso e atualiza o texto persistente
-        if st.session_state.get('sucesso_recente_p'):
-            st.toast("Registrado e Limpo!", icon="✅")
-            st.session_state['texto_persistente_p'] = texto_final
-            st.session_state['sucesso_recente_p'] = False
-        
-        # Mostra o preview atual (enquanto edita)
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        # Botão com Callback
-        st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência",))
+        # Passa o texto_final calculado como argumento
+        st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência", texto_final))
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # MOSTRA O ÚLTIMO TEXTO GERADO (PERMANENTE ATÉ O PRÓXIMO)
         if 'texto_persistente_p' in st.session_state:
             st.markdown("---")
             st.info("📝 Último texto registrado (Cópia Segura):")
@@ -317,6 +316,10 @@ def pagina_pendencias():
 #           PÁGINA SAC
 # ==========================================
 def pagina_sac():
+    if st.session_state.get('sucesso_recente_s'):
+        st.toast("Registrado e Limpo!", icon="✅")
+        st.session_state['sucesso_recente_s'] = False
+
     st.title("🎧 SAC / Atendimento")
     st.markdown("---")
     col1, col2 = st.columns([1, 1.5], gap="medium")
@@ -416,7 +419,6 @@ def pagina_sac():
             else:
                 texto_final = f"{frase_pedido}\n\n{texto_base}"
         elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
-             # Lógica segura
              raw_text = modelos_sac["BARRAR ENTREGA NA TRANSPORTADORA"]
              corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
              ped_str = numero_pedido if numero_pedido else "......"
@@ -437,15 +439,9 @@ def pagina_sac():
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        # Botão com Callback
-        st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC",))
+        # Passa o texto_final (JÁ preenchido) para o callback
+        st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC", texto_final))
         st.markdown('</div>', unsafe_allow_html=True)
-
-        # --- ÁREA DE SUCESSO / CÓPIA PERMANENTE ---
-        if st.session_state.get('sucesso_recente_s'):
-            st.toast("Registrado e Limpo!", icon="✅")
-            st.session_state['texto_persistente_s'] = texto_final
-            st.session_state['sucesso_recente_s'] = False
 
         if 'texto_persistente_s' in st.session_state:
             st.markdown("---")
