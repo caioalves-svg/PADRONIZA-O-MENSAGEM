@@ -171,10 +171,17 @@ modelos_pendencias = {
 # ==========================================
 modelos_sac = {
     "OUTROS": "", 
-    "RECLAME AQUI": "", 
+    "RECLAME AQUI": "",
+    "INFORMAÇÃO SOBRE COLETA": "", # Novo
+    "INFORMAÇÃO SOBRE ENTREGA": "", # Novo
+    "INFORMAÇÃO SOBRE O PRODUTO": "", # Novo
+    "INFORMAÇÃO SOBRE O REEMBOLSO": "", # Novo
+    
     "SAUDAÇÃO": """Olá, (Nome do cliente)!\n\nMe chamo {colaborador} e vou prosseguir com o seu atendimento.\nComo posso ajudar?""",
     
-    # --- NOVOS SCRIPTS ADICIONADOS ---
+    # --- SCRIPTS NOVOS E ATUALIZADOS ---
+    "BARRAR ENTREGA NA TRANSPORTADORA": """Olá, (Nome do cliente)!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nGostaríamos de informar que o pedido de barragem é definitivo. Por questões logísticas, após essa solicitação, não conseguimos reverter o processo para seguir com a entrega novamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+
     "ENTREGA RECUSADA": """Olá, (Nome do cliente). Tudo bem?\n\nRecebemos uma notificação da transportadora informando que a entrega do seu pedido foi recusada no endereço de destino.\n\nHouve algum problema na tentativa de entrega ou avaria na embalagem?\n\n· Se deseja receber o produto: Por gentileza, nos confirme o endereço e pontos de referência.\n· Se deseja cancelar: Nos informe por aqui para agilizarmos o processo.\n\nAtenção:\nCaso não tenhamos retorno até {data_limite}, o produto retornará ao nosso estoque e seguiremos com o cancelamento automático.\n\nAguardo seu retorno!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     
     "AGUARDANDO RETORNO (FOLLOW UP)": """Olá, (Nome do cliente).\n\nPassando para informar que seu caso continua sendo tratado como prioridade por nossa equipe.\n\nJá acionamos o setor responsável/transportadora e estamos apenas aguardando a formalização da resposta para lhe posicionar com a solução definitiva. Não se preocupe, estou acompanhando pessoalmente o seu pedido.\n\nAssim que tiver o retorno, entro em contato imediatamente. Obrigado pela paciência!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -199,7 +206,6 @@ modelos_sac = {
     "AGRADECIMENTO 2": """Disponha!\n\nPermanecemos disponíveis para esclarecer quaisquer dúvidas.\nSempre que precisar de ajuda, tiver sugestões ou necessitar de esclarecimentos adicionais, não hesite em nos contatar.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "PRÉ-VENDA": """Olá, (Nome do cliente)!\n\n(Insira o texto de pré-venda aqui)\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "SOLICITAÇÃO DE COLETA": """Olá, (Nome do cliente)!\n\nVerificamos que o seu pedido está dentro do prazo para troca/cancelamento. Sendo assim, já solicitamos ao setor responsável a emissão da Nota Fiscal de coleta e o acionamento da transportadora para realizar o recolhimento da mercadoria.\n\nInstruções de devolução:\n- Por favor, devolva as mercadorias em suas embalagens originais ou similares, devidamente protegidas.\n- A transportadora realizará a coleta no endereço de entrega nos próximos 15/20 dias úteis: {endereco_resumido}\n- É necessário colocar dentro da embalagem uma cópia da Nota Fiscal.\n\nRessaltamos que, assim que a coleta for confirmada, daremos continuidade ao seu atendimento conforme solicitado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    "BARRAR ENTREGA NA TRANSPORTADORA": """Olá, (Nome do cliente)!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nAssim que o produto retornar ao centro de distribuição da Engage Eletro, seguiremos imediatamente com as tratativas de troca ou reembolso, conforme nossa política.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "ASSISTÊNCIA TÉCNICA (DENTRO DOS 7 DIAS)": """Olá, (Nome do cliente)!\n\nInformamos que o processo de troca via loja possui um prazo total de até 20 dias úteis (contando a partir da data de coleta).\n\nPara solucionar o seu problema de forma muito mais rápida, recomendamos acionar diretamente a assistência técnica da fabricante {fabricante}, que possui prioridade no atendimento. Seguem as informações de contato:\n{contato_assistencia}\n\nCaso a assistência técnica não consiga resolver ou seja inviável, por favor, nos informe. Verificaremos a possibilidade de troca diretamente conosco, mediante a disponibilidade em nosso estoque.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "PRAZOS DE REEMBOLSO": """Olá, (Nome do cliente)!\n\nA devolução do valor será realizada na mesma forma de pagamento utilizada na compra:\n\n- Boleto Bancário: O reembolso será feito em conta bancária de mesma titularidade ou via vale-presente. Se os dados informados estiverem corretos, o crédito ocorre em até 3 dias úteis.\n- Cartão de Crédito: O estorno será processado pela operadora do cartão e, dependendo da data de fechamento da sua fatura, poderá ser visualizado em uma ou duas faturas subsequentes.\n- PIX: O reembolso será realizado na conta de origem do PIX em até um dia útil.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     "ASSISTÊNCIA TÉCNICA (FORA DOS 7 DIAS)": """Olá, (Nome do cliente)!\n\nVerificamos que a sua compra foi realizada no dia {data_compra}, referente à NF-{nota_fiscal}. Desta forma, o pedido encontra-se fora do prazo de 7 dias para cancelamento ou troca direta com a loja. No entanto, seu produto está amparado pela garantia do fabricante, que cobre defeitos de funcionamento.\n\nPara agilizar o reparo, segue o link para localizar o posto autorizado mais próximo de sua residência: {link_posto}\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -464,21 +470,25 @@ def pagina_sac():
             dados["{estado}"] = st.text_input("Estado:", key="uf_ins")
             dados["{complemento}"] = st.text_input("Complemento (opcional):", value="", key="comp_ins")
             dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="", key="ref_ins")
-        elif "ENTREGA RECUSADA" in op_upper: # Adicionado
+        elif "ENTREGA RECUSADA" in op_upper:
             st.info("📅 Dados de Prazo")
             dados["{data_limite}"] = st.text_input("Data/Horário limite:", key="data_limite_recusa")
-        elif "PEDIDO CANCELADO (ENTREGUE)" in op_upper: # Adicionado
+        elif "PEDIDO CANCELADO (ENTREGUE)" in op_upper:
             st.info("📅 Dados da Entrega")
             dados["{data_entrega}"] = st.text_input("Data da Entrega:", key="data_entrega_canc_ent")
 
     with col2:
         st.subheader("2. Visualização")
         
-        # --- AQUI ESTÁ A LÓGICA DO RECLAME AQUI IGUAL AO OUTROS ---
-        if opcao == "OUTROS" or opcao == "RECLAME AQUI":
+        # LISTA DE OPÇÕES COM TEXTO LIVRE ATUALIZADA
+        lista_livre_escrita = ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]
+        
+        if opcao in lista_livre_escrita:
             label_texto = "Digite a mensagem personalizada:"
             if opcao == "RECLAME AQUI":
                 label_texto = "Digite a resposta do Reclame Aqui:"
+            elif "INFORMAÇÃO" in opcao:
+                label_texto = f"Detalhes sobre {opcao}:"
                 
             texto_base = st.text_area(label_texto, height=200)
             if texto_base:
@@ -494,7 +504,7 @@ def pagina_sac():
              texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
 
         # Regra Frase Pedido
-        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "OUTROS", "RECLAME AQUI"] # Adicionado RECLAME AQUI na exceção
+        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA"] + lista_livre_escrita
         scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
         
         if opcao not in excecoes_nf and opcao not in scripts_martins:
@@ -506,6 +516,10 @@ def pagina_sac():
                 texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
             else:
                 texto_final = f"{frase_pedido}\n\n{texto_base}"
+        elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
+             # Caso específico do Barrar Entrega (tem frase de pedido customizada no meio)
+             ped_str = numero_pedido if numero_pedido else "......"
+             texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{texto_base.split('Olá, (Nome do cliente)!')[1].strip()}"
         elif opcao in scripts_martins:
             texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
         else:
@@ -596,11 +610,16 @@ def pagina_dashboard():
         data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
         data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
         
-        mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final)
+        # --- FILTRO DE SETOR RECOLOCADO AQUI ---
+        lista_setores = df["Setor"].unique()
+        filtro_setor = st.sidebar.multiselect("Filtrar por Setor:", options=lista_setores, default=lista_setores)
+        # ---------------------------------------
+        
+        mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final) & (df["Setor"].isin(filtro_setor))
         df_filtrado = df.loc[mask]
         
         if df_filtrado.empty:
-            st.warning("Nenhum dado encontrado para o período.")
+            st.warning("Nenhum dado encontrado para o período/setor selecionado.")
             return
 
         # KPIs
