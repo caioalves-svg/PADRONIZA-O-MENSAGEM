@@ -20,6 +20,7 @@ NOME_PLANILHA_GOOGLE = "Base_Atendimentos_Engage"
 
 def conectar_google_sheets():
     try:
+        # Tenta pegar dos Secrets
         if "gcp_service_account" in st.secrets:
             secrets = st.secrets["gcp_service_account"]
             creds_dict = {
@@ -37,13 +38,17 @@ def conectar_google_sheets():
             client = gspread.service_account_from_dict(creds_dict)
             sheet = client.open(NOME_PLANILHA_GOOGLE).sheet1
             return sheet
+
+        # Fallback: Arquivo Local
         elif os.path.exists("credentials.json"):
             client = gspread.service_account(filename="credentials.json")
             sheet = client.open(NOME_PLANILHA_GOOGLE).sheet1
             return sheet
+            
         else:
-            st.error("🚨 Nenhuma credencial encontrada.")
+            st.error("🚨 Nenhuma credencial encontrada (Secrets ou Arquivo).")
             return None
+
     except Exception as e:
         st.error(f"Erro de Conexão: {e}")
         return None
@@ -58,11 +63,20 @@ def carregar_dados():
             else:
                 return pd.DataFrame(columns=["Data", "Hora", "Dia_Semana", "Setor", "Colaborador", "Motivo", "Portal", "Nota_Fiscal", "Numero_Pedido", "Motivo_CRM", "Transportadora"])
         except Exception as e:
-            st.error(f"Erro ao ler dados: {e}")
+            st.error(f"Erro ao ler dados da planilha: {e}")
     return pd.DataFrame()
 
 def obter_dia_semana_pt(dt):
-    dias = {0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira", 3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo"}
+    """Retorna o dia da semana em Português."""
+    dias = {
+        0: "Segunda-feira",
+        1: "Terça-feira",
+        2: "Quarta-feira",
+        3: "Quinta-feira",
+        4: "Sexta-feira",
+        5: "Sábado",
+        6: "Domingo"
+    }
     return dias[dt.weekday()]
 
 def salvar_registro(setor, colaborador, motivo, portal, nf, numero_pedido, motivo_crm, transportadora="-"):
@@ -72,12 +86,25 @@ def salvar_registro(setor, colaborador, motivo, portal, nf, numero_pedido, motiv
         str_nf = str(nf)
         str_pedido = str(numero_pedido)
         dia_pt = obter_dia_semana_pt(agora)
-        nova_linha = [agora.strftime("%d/%m/%Y"), agora.strftime("%H:%M:%S"), dia_pt, setor, colaborador, motivo, portal, str_nf, str_pedido, motivo_crm, transportadora]
+
+        nova_linha = [
+            agora.strftime("%d/%m/%Y"),      
+            agora.strftime("%H:%M:%S"),      
+            dia_pt,                          # Dia em Português
+            setor,
+            colaborador,
+            motivo,
+            portal,
+            str_nf,
+            str_pedido,
+            motivo_crm,
+            transportadora
+        ]
         try:
             sheet.append_row(nova_linha)
             return True
         except Exception as e:
-            st.error(f"Erro ao gravar: {e}")
+            st.error(f"Erro ao gravar no Google Sheets: {e}")
             return False
     return False
 
@@ -87,43 +114,44 @@ def converter_para_excel_csv(df):
     df_export['Numero_Pedido'] = df_export['Numero_Pedido'].astype(str)
     return df_export.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
 
-def obter_data_hora_brasil():
-    fuso_br = pytz.timezone('America/Sao_Paulo')
-    return datetime.now(fuso_br)
-
-def copiar_para_clipboard(texto):
-    texto_json = json.dumps(texto)
-    js = f"""<script>
-    function copyToClipboard() {{
-        const text = {texto_json};
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {{ document.execCommand('copy'); }} catch (err) {{}}
-        document.body.removeChild(textArea);
-    }}
-    copyToClipboard();
-    </script>"""
-    components.html(js, height=0, width=0)
-
 # ==========================================
 #      DADOS E LISTAS
 # ==========================================
+
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla"])
 colaboradores_sac = sorted(["Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Telliane", "Isadora", "Lorrayne", "Leticia", "Julia"])
+
 lista_transportadoras = sorted(["4ELOS", "ATUAL", "BRASIL WEB", "FAVORITA", "FRONTLOG", "GENEROSO", "JADLOG", "LOGAN", "MMA", "PAJUÇARA", "PATRUS", "REBOUÇAS", "REDE SUL", "RIO EXPRESS", "TJB", "TOTAL", "TRILOG"])
-lista_portais = sorted(["ALIEXPRESS", "AMAZON - EXTREMA", "AMAZON | ENGAGE LOG", "AMAZON DBA", "AMERICANAS - EXTREMA", "B2W", "BRADESCO SHOP", "CARREFOUR", "CARREFOUR OUTLET", "CNOVA", "CNOVA - EXTREMA", "FAST SHOP", "KABUM", "LEROY - EXTREMA", "MADEIRA MADEIRA", "MAGALU - EXTREMA", "MAGALU ELETRO", "MAGALU INFO", "MARTINS", "MEGA B2B", "MELI OUTLET", "MERCADO LIVRE", "MERCADO LIVRE - EXTREMA", "O MAGAZINE", "PADRÃO", "SHOPEE", "SKYHUB", "TIKTOK", "WAPSTORE - ENGAGE", "WEBCONTINENTAL", "WINECOM - LOJA INTEGRADA", "ZEMA"])
-lista_motivo_crm = sorted(["ACAREAÇÃO", "ACORDO CLIENTE", "ALTERAÇÃO DE NOTA FISCAL", "AREA DE RISCO", "AREA NÃO ATENDIDA", "ARREPENDIMENTO", "ARREPENDIMENTO - DEVOLUÇÃO AMAZON", "ARREPENDIMENTO POR QUALIDADE DO PRODUTO", "ATRASO NA ENTREGA", "ATRASO NA EXPEDIÇÃO", "AUSENTE", "AVARIA", "CANCELAMENTO FORÇADO PELO PORTAL", "CASO JURIDÍCO", "CORREÇÃO DE ENDEREÇO", "DEFEITO", "DESCONHECIDO", "DESCONTO", "DEVOLUÇÃO SEM INFORMAÇÃO", "ENDEREÇO NÃO LOCALIZADO", "ENTREGA C/ AVARIA FORÇADA", "ENTREGUE E CANCELADO", "ERRO DE CADASTRO", "ERRO DE EXPEDIÇÃO", "ERRO DE INTEGRAÇÃO DE FATURAMENTO", "ESTOQUE FALTANTE", "EXTRAVIO", "FALTA DE ETIQUETA ENVIAS", "INSUCESSO NA ENTREGA", "ITEM FALTANTE", "MERCADORIA RETIDA", "MUDOU-SE", "NOTA RETIDA", "PAGAMENTO/REEMBOLSO", "RECOBRANÇA DE CLIENTE", "RECUSA", "RETENÇÃO", "SEM ABERTURA DE CRM", "SEM RASTREIO", "SUSPEITA DE FRAUDE", "TROCA DE ETIQUETA", "ZONA RURAL"])
+
+lista_portais = sorted([
+    "ALIEXPRESS", "AMAZON - EXTREMA", "AMAZON | ENGAGE LOG", "AMAZON DBA", "AMERICANAS - EXTREMA",
+    "B2W", "BRADESCO SHOP", "CARREFOUR", "CARREFOUR OUTLET", "CNOVA", "CNOVA - EXTREMA",
+    "FAST SHOP", "KABUM", "LEROY - EXTREMA", "MADEIRA MADEIRA", "MAGALU - EXTREMA",
+    "MAGALU ELETRO", "MAGALU INFO", "MARTINS", "MEGA B2B", "MELI OUTLET", "MERCADO LIVRE",
+    "MERCADO LIVRE - EXTREMA", "O MAGAZINE", "PADRÃO", "SHOPEE", "SKYHUB", "TIKTOK",
+    "WAPSTORE - ENGAGE", "WEBCONTINENTAL", "WINECOM - LOJA INTEGRADA", "ZEMA"
+])
+
+lista_motivo_crm = sorted([
+    "ACAREAÇÃO", "ACORDO CLIENTE", "ALTERAÇÃO DE NOTA FISCAL", "AREA DE RISCO", "AREA NÃO ATENDIDA",
+    "ARREPENDIMENTO", "ARREPENDIMENTO - DEVOLUÇÃO AMAZON", "ARREPENDIMENTO POR QUALIDADE DO PRODUTO",
+    "ATRASO NA ENTREGA", "ATRASO NA EXPEDIÇÃO", "AUSENTE", "AVARIA", "CANCELAMENTO FORÇADO PELO PORTAL",
+    "CASO JURIDÍCO", "CORREÇÃO DE ENDEREÇO", "DEFEITO", "DESCONHECIDO", "DESCONTO",
+    "DEVOLUÇÃO SEM INFORMAÇÃO", "ENDEREÇO NÃO LOCALIZADO", "ENTREGA C/ AVARIA FORÇADA",
+    "ENTREGUE E CANCELADO", "ERRO DE CADASTRO", "ERRO DE EXPEDIÇÃO", "ERRO DE INTEGRAÇÃO DE FATURAMENTO",
+    "ESTOQUE FALTANTE", "EXTRAVIO", "FALTA DE ETIQUETA ENVIAS", "INSUCESSO NA ENTREGA",
+    "ITEM FALTANTE", "MERCADORIA RETIDA", "MUDOU-SE", "NOTA RETIDA", "PAGAMENTO/REEMBOLSO",
+    "RECOBRANÇA DE CLIENTE", "RECUSA", "RETENÇÃO", "SEM ABERTURA DE CRM", "SEM RASTREIO", "SUSPEITA DE FRAUDE",
+    "TROCA DE ETIQUETA", "ZONA RURAL"
+])
 
 # ==========================================
-#      SCRIPTS
+#      SCRIPTS (MENSAGENS PENDÊNCIAS)
 # ==========================================
 modelos_pendencias = {
-    "ATENDIMENTO DIGISAC": "", "2° TENTATIVA DE CONTATO": "", "3° TENTATIVA DE CONTATO": "",
+    "ATENDIMENTO DIGISAC": "", 
+    "2° TENTATIVA DE CONTATO": "", 
+    "3° TENTATIVA DE CONTATO": "",
     "AUSENTE": """Olá, (Nome do cliente)! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria no endereço cadastrado, porém, o responsável pelo recebimento estava ausente.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo?\n\nRua: \nNúmero: \nBairro: \nCEP: \nCidade: \nEstado: \nPonto de Referência: \nRecebedor: \nTelefone: \n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nQualquer dúvida, estamos à disposição!\n\nAtenciosamente,\n{colaborador}""",
     "SOLICITAÇÃO DE CONTATO": """Olá, (Nome do cliente)! Tudo bem? Esperamos que sim!\n\nPara facilitar a entrega da sua mercadoria e não ter desencontros com a transportadora {transportadora}, o senhor pode por gentileza nos enviar um número de telefone ativo para alinharmos a entrega?\n\nAguardo o retorno!\n\nAtenciosamente,\n{colaborador}""",
     "ENDEREÇO NÃO LOCALIZADO": """Olá, (Nome do cliente)! Tudo bem? Esperamos que sim!\n\nA transportadora {transportadora} tentou realizar a entrega de sua mercadoria, porém, não localizou o endereço.\n\nPara solicitarmos uma nova tentativa de entrega à transportadora, poderia por gentileza, nos confirmar dados abaixo:\n\nRua:\nNúmero:\nBairro:\nCEP:\nCidade:\nEstado:\nPonto de Referência:\nRecebedor:\nTelefone:\n\nApós a confirmação dos dados acima, iremos solicitar que a transportadora realize uma nova tentativa de entrega que irá ocorrer no prazo de até 3 a 5 dias úteis. Caso não tenhamos retorno, o produto será devolvido ao nosso Centro de Distribuição e seguiremos com o cancelamento da compra.\n\nAtenciosamente,\n{colaborador}""",
@@ -138,16 +166,33 @@ modelos_pendencias = {
     "REENVIO DE PRODUTO": """Olá, (Nome do cliente)! Tudo bem? Esperamos que sim!\n\nConforme solicitado, realizamos o envio de um novo produto ao senhor. Em até 48h você terá acesso a sua nova nota fiscal e poderá acompanhar os passos de sua entrega:\n\nLink: https://ssw.inf.br/2/rastreamento_pf?\n(Necessário inserir o CPF)\n\nNovamente peço desculpas por todo transtorno causado.\n\nAtenciosamente,\n{colaborador}"""
 }
 
+# ==========================================
+#      SCRIPTS (MENSAGENS SAC)
+# ==========================================
 modelos_sac = {
-    "OUTROS": "", "RECLAME AQUI": "", "INFORMAÇÃO SOBRE COLETA": "", "INFORMAÇÃO SOBRE ENTREGA": "", "INFORMAÇÃO SOBRE O PRODUTO": "", "INFORMAÇÃO SOBRE O REEMBOLSO": "",
+    "OUTROS": "", 
+    "RECLAME AQUI": "",
+    "INFORMAÇÃO SOBRE COLETA": "", 
+    "INFORMAÇÃO SOBRE ENTREGA": "", 
+    "INFORMAÇÃO SOBRE O PRODUTO": "", 
+    "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
+    
     "SAUDAÇÃO": """Olá, (Nome do cliente)!\n\nMe chamo {colaborador} e vou prosseguir com o seu atendimento.\nComo posso ajudar?""",
+    
     "BARRAR ENTREGA NA TRANSPORTADORA": """Olá, (Nome do cliente)!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nGostaríamos de informar que o pedido de barragem é definitivo. Por questões logísticas, após essa solicitação, não conseguimos reverter o processo para seguir com a entrega novamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+
     "ENTREGA RECUSADA": """Olá, (Nome do cliente). Tudo bem?\n\nRecebemos uma notificação da transportadora informando que a entrega do seu pedido foi recusada no endereço de destino.\n\nHouve algum problema na tentativa de entrega ou avaria na embalagem?\n\n· Se deseja receber o produto: Por gentileza, nos confirme o endereço e pontos de referência.\n· Se deseja cancelar: Nos informe por aqui para agilizarmos o processo.\n\nAtenção:\nCaso não tenhamos retorno até {data_limite}, o produto retornará ao nosso estoque e seguiremos com o cancelamento automático.\n\nAguardo seu retorno!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "AGUARDANDO RETORNO (FOLLOW UP)": """Olá, (Nome do cliente).\n\nPassando para informar que seu caso continua sendo tratado como prioridade por nossa equipe.\n\nJá acionamos o setor responsável/transportadora e estamos apenas aguardando a formalização da resposta para lhe posicionar com a solução definitiva. Não se preocupe, estou acompanhando pessoalmente o seu pedido.\n\nAssim que tiver o retorno, entro em contato imediatamente. Obrigado pela paciência!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "PEDIDO EM EXPEDIÇÃO": """Olá, (Nome do cliente).\n\nTrago boas notícias! O seu pedido já foi aprovado e encontra-se atualmente em processo de expedição (separação e embalagem).\n\nEsta etapa garante que tudo chegue perfeito para você e pode levar até 72 horas úteis. Assim que o pacote for coletado pela transportadora, o código de rastreio será gerado e enviado para você acompanhar a rota de entrega.\n\nQualquer dúvida, estou à disposição!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "SOLICITAÇÃO DE BARRAR EXPEDIÇÃO": """Olá, (Nome do cliente).\n\nRecebemos sua solicitação de cancelamento. Informo que já acionei nosso estoque solicitando o bloqueio imediato da expedição do pedido.\n\nEstamos aguardando apenas a confirmação da equipe logística de que o produto não foi coletado. Assim que confirmado, seguiremos com o reembolso conforme nossa política.\n\nTe aviso assim que tiver o "OK" do estoque!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "PEDIDO CANCELADO (ENTREGUE)": """Olá, (Nome do cliente).\n\nNotamos pelo rastreio que o pedido foi entregue com sucesso no dia {data_entrega}.\n\nComo a plataforma Amazon já havia processado o reembolso deste pedido anteriormente, precisamos regularizar a situação. Por uma questão de ética e transparência, gostaríamos de confirmar como prefere prosseguir:\n\n1. Autorizar uma nova cobrança (Retrocharge) e ficar com o produto?\n2. Realizar a devolução do item? (Enviaremos um código de postagem sem custos).\n\nAguardamos seu retorno para finalizar este atendimento.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "PEDIDO CANCELADO (EM TRÂNSITO)": """Olá, (Nome do cliente).\n\nVerificamos que a plataforma já seguiu com o seu reembolso integral.\n\nComo o pedido ainda consta em rota, já solicitamos à transportadora que suspenda a entrega. No entanto, caso o entregador compareça ao seu endereço antes da atualização do sistema, orientamos que recuse o recebimento no ato da entrega.\n\nIsso garantirá que o pacote retorne ao nosso estoque automaticamente, finalizando o processo de forma correta.\n\nAgradecemos a compreensão!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+
     "CANCELAMENTO MARTINS (FRETE)": """Olá, {nome_cliente}!\n\nIdentificamos que, devido à localização de entrega, o valor do frete excedeu o limite operacional permitido para esta transação. Por este motivo, solicitamos a gentileza de seguir com o cancelamento do pedido.\n\nAtenciosamente, {colaborador} | Equipe de Atendimento Engage Eletro.""",
     "CANCELAMENTO MARTINS (ESTOQUE)": """Olá, {nome_cliente}!\n\nDevido a uma indisponibilidade pontual em nosso estoque logístico, não conseguiremos processar o envio do seu pedido desta vez. Para evitar maiores transtornos, pedimos que realize o cancelamento da compra.\n\nAtenciosamente, {colaborador} | Equipe de Atendimento Engage Eletro.""",
     "CANCELAMENTO MARTINS (PREÇO)": """Olá, {nome_cliente}!\n\nIdentificamos uma divergência no valor do produto devido a um erro técnico na transmissão de nossa tabela de precificação. Em razão disso, solicitamos o cancelamento do pedido para que possamos regularizar a situação.\n\nAtenciosamente, {colaborador} | Equipe de Atendimento Engage Eletro.""",
@@ -189,63 +234,117 @@ modelos_sac = {
     "SOLICITAÇÃO DE FOTOS E VÍDEOS (AVARIA)": """Olá, (Nome do cliente)!\n\nPedimos sinceras desculpas pelos transtornos causados com a chegada do seu produto. Entendemos sua frustração e queremos resolver isso o mais rápido possível.\n\nPara darmos continuidade ao atendimento e agilizarmos a solução junto ao setor responsável, precisamos que nos envie, por gentileza:\n· Fotos nítidas do produto e da embalagem onde consta a avaria;\n· Um breve vídeo mostrando o detalhe do dano (se possível).\n\nAssim que recebermos as evidências, faremos a análise imediata para prosseguir com as tratativas de resolução.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}"""
 }
 
-# ORDENAÇÃO DE LISTA
-lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k not in ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]])
-lista_motivos_contato.extend(["INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "RECLAME AQUI", "OUTROS"])
+# ORDENAÇÃO DE LISTA CORRIGIDA (APÓS DEFINIÇÃO DE MODELOS_SAC)
+lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k != "OUTROS"])
+lista_motivos_contato.append("OUTROS")
 
 # ==========================================
-#           DESIGN
+#      FUNÇÕES DE BANCO DE DADOS
+# ==========================================
+def obter_data_hora_brasil():
+    fuso_br = pytz.timezone('America/Sao_Paulo')
+    return datetime.now(fuso_br)
+
+def copiar_para_clipboard(texto):
+    texto_json = json.dumps(texto)
+    js = f"""
+    <script>
+    function copyToClipboard() {{
+        const text = {texto_json};
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {{ document.execCommand('copy'); }} catch (err) {{}}
+        document.body.removeChild(textArea);
+    }}
+    copyToClipboard();
+    </script>
+    """
+    components.html(js, height=0, width=0)
+
+# ==========================================
+#      DESIGN CLEAN
 # ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
     .stApp { background-color: #f8fafc !important; font-family: 'Inter', sans-serif; }
     section[data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e2e8f0; }
     .stApp, .stApp * { color: #334155 !important; }
     h1, h2, h3, h4, h5, h6 { color: #0f172a !important; font-weight: 700; }
-    .stSelectbox div[data-baseweb="select"] > div, .stTextInput input, .stDateInput input, .stTextArea textarea {
-        background-color: #ffffff !important; border: 1px solid #94a3b8 !important; border-radius: 8px !important; color: #1e293b !important;
+    
+    .stSelectbox div[data-baseweb="select"] > div, 
+    .stTextInput input, .stDateInput input, .stTextArea textarea {
+        background-color: #ffffff !important; 
+        border: 1px solid #94a3b8 !important; 
+        border-radius: 8px !important; 
+        color: #1e293b !important;
     }
-    .preview-box { background-color: #f1f5f9 !important; border-left: 5px solid #3b82f6; border-radius: 4px; padding: 20px; color: #334155 !important; white-space: pre-wrap; margin-top: 10px; font-size: 14px; }
-    .botao-registrar .stButton button { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; color: white !important; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; width: 100%; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
+    ::placeholder { color: #94a3b8 !important; opacity: 1; }
+
+    .preview-box { 
+        background-color: #f1f5f9 !important; border-left: 5px solid #3b82f6; 
+        border-radius: 4px; padding: 20px; color: #334155 !important; 
+        white-space: pre-wrap; margin-top: 10px; font-size: 14px; 
+    }
+
+    .botao-registrar .stButton button {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; 
+        color: white !important; border: none; padding: 0.8rem 2rem; 
+        border-radius: 8px; font-weight: 600; width: 100%; 
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+    }
     .botao-registrar .stButton button:hover { transform: translateY(-2px); }
+
     .stDownloadButton button { background-color: #3b82f6 !important; color: white !important; border: none !important; border-radius: 8px; font-weight: 600; width: 100%; }
+    .stDownloadButton button:hover { background-color: #2563eb !important; }
+    
+    div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stVerticalBlock"] { gap: 0rem; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-#           MENU
+#           MENU LATERAL
 # ==========================================
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", width=180)
+    st.sidebar.markdown("##")
+
 st.sidebar.caption("MENU PRINCIPAL")
-pagina_escolhida = st.sidebar.radio("Navegação:", ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"), label_visibility="collapsed")
+pagina_escolhida = st.sidebar.radio(
+    "Navegação:",
+    ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"),
+    label_visibility="collapsed"
+)
 st.sidebar.markdown("---")
 
 # ==========================================
 #           PÁGINA PENDÊNCIAS
 # ==========================================
 def pagina_pendencias():
-    if st.session_state.get('sucesso_recente_p'):
-        st.toast("Registrado e Limpo!", icon="✅")
-        st.info("📝 Último texto gerado:")
-        st.code(st.session_state['ultimo_texto_p'], language="text")
-        copiar_para_clipboard(st.session_state['ultimo_texto_p'])
-        st.session_state['sucesso_recente_p'] = False
-
     st.title("🚚 Pendências Logísticas")
     st.markdown("---")
+    
     col1, col2 = st.columns([1, 1.5], gap="medium")
+    
     with col1:
         st.subheader("1. Configuração")
         colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
         nome_cliente = st.text_input("👤 Nome do Cliente:", key="cliente_p")
+        
         portal = st.selectbox("🛒 Portal:", lista_portais, key="portal_p")
         nota_fiscal = st.text_input("📄 Nota Fiscal:", key="nf_p")
         numero_pedido = st.text_input("📦 Número do Pedido:", key="ped_p")
         motivo_crm = st.selectbox("📂 Motivo CRM:", lista_motivo_crm, key="crm_p")
+        
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
+        
         st.markdown("---")
         st.subheader("2. Motivo")
         opcao = st.selectbox("Selecione o caso:", list(modelos_pendencias.keys()), key="msg_p")
@@ -253,14 +352,29 @@ def pagina_pendencias():
     with col2:
         st.subheader("3. Visualização")
         texto_cru = modelos_pendencias[opcao]
+        
         nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
-        assinatura_nome = colab if "AMAZON" not in portal else ""
-        texto_base = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
-        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
+        assinatura_nome = colab
+
+        if "AMAZON" in portal:
+            assinatura_nome = ""
+
+        # Substituições Gerais
+        texto_base = texto_cru.replace("{transportadora}", transp)\
+                              .replace("{colaborador}", assinatura_nome)\
+                              .replace("{nome_cliente}", nome_cliente_str)\
+                              .replace("(Nome do cliente)", nome_cliente_str)
+
+        # Regra Via Varejo: Mantém o "Olá"
+        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]:
+             pass 
+
         motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO"]
+        
         if opcao not in motivos_sem_texto:
             ped_str = numero_pedido if numero_pedido else "..."
             frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
+            
             if "\n" in texto_base:
                 partes = texto_base.split("\n", 1)
                 texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
@@ -270,47 +384,42 @@ def pagina_pendencias():
             texto_final = ""
         
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
+        
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        
         if st.button("✅ Registrar e Copiar", key="btn_save_pend"):
             sucesso = salvar_registro("Pendência", colab, opcao, portal, nota_fiscal, numero_pedido, motivo_crm, transp)
             if sucesso:
-                st.session_state['ultimo_texto_p'] = texto_final
-                st.session_state['sucesso_recente_p'] = True
-                
-                # LIMPEZA AUTOMÁTICA
-                for k in ["cliente_p", "nf_p", "ped_p"]:
-                    if k in st.session_state: st.session_state[k] = ""
-                st.rerun()
+                st.toast("Registrado com sucesso na Nuvem! ☁️", icon="✨")
+                copiar_para_clipboard(texto_final)
+                st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 #           PÁGINA SAC
 # ==========================================
 def pagina_sac():
-    if st.session_state.get('sucesso_recente_s'):
-        st.toast("Registrado e Limpo!", icon="✅")
-        st.info("📝 Último texto gerado:")
-        st.code(st.session_state['ultimo_texto_s'], language="text")
-        copiar_para_clipboard(st.session_state['ultimo_texto_s'])
-        st.session_state['sucesso_recente_s'] = False
-
     st.title("🎧 SAC / Atendimento")
     st.markdown("---")
+    
     col1, col2 = st.columns([1, 1.5], gap="medium")
     dados = {}
+    
     with col1:
         st.subheader("1. Configuração Obrigatória")
+        
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
         nome_cliente = st.text_input("👤 Nome do Cliente:", key="cliente_s")
         portal = st.selectbox("🛒 Portal:", lista_portais, key="portal_s")
         nota_fiscal = st.text_input("📄 Nota Fiscal:", key="nf_s")
         numero_pedido = st.text_input("📦 Número do Pedido:", key="ped_s")
         motivo_crm = st.selectbox("📂 Motivo CRM:", lista_motivo_crm, key="crm_s")
+        
         st.markdown("---")
+        
         opcao = st.selectbox("💬 Qual o motivo do contato?", lista_motivos_contato, key="msg_s")
         
+        # === CORREÇÃO DOS ERROS DE ID (Adicionei key= em todos) ===
         op_upper = opcao.upper()
         if "SOLICITAÇÃO DE COLETA" in op_upper:
             st.info("🚚 Endereço")
@@ -321,6 +430,7 @@ def pagina_sac():
             dados["{contato_assistencia}"] = st.text_area("Endereço/Telefone/Infos:", key="cont_assist_in_7")
         elif "ASSISTÊNCIA TÉCNICA (FORA DOS 7 DIAS)" in op_upper:
             st.info("📅 Dados da Compra")
+            # --- Correção do ID Duplicado Aqui ---
             dados["{data_compra}"] = st.text_input("Data da Compra:", key="data_comp_out_7")
             dados["{nota_fiscal}"] = st.text_input("Número da NF (Repetir se necessário):", key="nf_out_7")
             dados["{link_posto}"] = st.text_input("Link do Posto Autorizado:", key="link_out_7")
@@ -368,45 +478,55 @@ def pagina_sac():
     with col2:
         st.subheader("2. Visualização")
         
+        # LISTA DE OPÇÕES COM TEXTO LIVRE ATUALIZADA
         lista_livre_escrita = ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]
         
         if opcao in lista_livre_escrita:
             label_texto = "Digite a mensagem personalizada:"
-            if opcao == "RECLAME AQUI": label_texto = "Digite a resposta do Reclame Aqui:"
-            elif "INFORMAÇÃO" in opcao: label_texto = f"Detalhes sobre {opcao}:"
+            if opcao == "RECLAME AQUI":
+                label_texto = "Digite a resposta do Reclame Aqui:"
+            elif "INFORMAÇÃO" in opcao:
+                label_texto = f"Detalhes sobre {opcao}:"
+                
             texto_base = st.text_area(label_texto, height=200)
-            if texto_base: texto_base += f"\n\nEquipe de atendimento Engage Eletro.\n{{colaborador}}"
+            if texto_base:
+                texto_base += f"\n\nEquipe de atendimento Engage Eletro.\n{{colaborador}}"
         else:
             texto_base = modelos_sac.get(opcao, "")
 
         nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
         texto_base = texto_base.replace("(Nome do cliente)", nome_cliente_str)
-        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
-        
+
+        # Regra Via Varejo ATUALIZADA
+        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]:
+             texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
+
+        # Regra Frase Pedido
         excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA"] + lista_livre_escrita
         scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
         
         if opcao not in excecoes_nf and opcao not in scripts_martins:
             ped_str = numero_pedido if numero_pedido else "..."
             frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
+            
             if "\n" in texto_base:
                 partes = texto_base.split("\n", 1)
                 texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
             else:
                 texto_final = f"{frase_pedido}\n\n{texto_base}"
         elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
+             # Caso específico do Barrar Entrega (tem frase de pedido customizada no meio)
              ped_str = numero_pedido if numero_pedido else "......"
-             try:
-                 resto_texto = texto_base.split('Olá, (Nome do cliente)!')[1].strip()
-                 texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{resto_texto}"
-             except:
-                 texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
+             texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{texto_base.split('Olá, (Nome do cliente)!')[1].strip()}"
         elif opcao in scripts_martins:
             texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
         else:
             texto_final = texto_base
 
-        assinatura_nome = colab if "AMAZON" not in portal else ""
+        assinatura_nome = colab
+        if "AMAZON" in portal:
+            assinatura_nome = "" 
+        
         texto_final = texto_final.replace("{colaborador}", assinatura_nome)
         
         for chave, valor in dados.items():
@@ -414,21 +534,20 @@ def pagina_sac():
             texto_final = texto_final.replace(chave, substituto)
         
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
+
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        transp_usada = dados.get("{transportadora}", "-")
+        transp_usada = "-"
+        if "{transportadora}" in dados:
+            transp_usada = dados["{transportadora}"]
+            
         if st.button("✅ Registrar e Copiar", key="btn_save_sac"):
             sucesso = salvar_registro("SAC", colab, opcao, portal, nota_fiscal, numero_pedido, motivo_crm, transp_usada)
             if sucesso:
-                st.session_state['ultimo_texto_s'] = texto_final
-                st.session_state['sucesso_recente_s'] = True
-                
-                # LIMPEZA AUTOMÁTICA
-                keys_clean = ["cliente_s", "nf_s", "ped_s", "end_coleta_sac", "fab_in_7", "cont_assist_in_7", "data_comp_out_7", "nf_out_7", "link_out_7", "cod_post_sac", "tr_ent_sac_conf", "data_ent_sac", "fab_glp", "site_glp", "val_desc", "prev_ent", "link_rast", "nf_rast", "tr_trans_sac", "tr_fisc_sac", "rua_ins", "cep_ins", "num_ins", "bair_ins", "cid_ins", "uf_ins", "comp_ins", "ref_ins", "data_limite_recusa", "data_entrega_canc_ent"]
-                for k in keys_clean:
-                    if k in st.session_state: st.session_state[k] = ""
-                st.rerun()
+                st.toast("Registrado com sucesso na Nuvem! ☁️", icon="✨")
+                copiar_para_clipboard(texto_final)
+                st.code(texto_final, language="text")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -439,22 +558,37 @@ def pagina_dashboard():
     st.markdown("Visão estratégica em tempo real.")
     st.markdown("---")
 
-    if not ("gcp_service_account" in st.secrets or os.path.exists("credentials.json")):
-        st.error("🚨 Credenciais não encontradas.")
+    # Verifica se existem credenciais (local ou nuvem)
+    tem_secrets = "gcp_service_account" in st.secrets
+    tem_arquivo = os.path.exists("credentials.json")
+
+    if not tem_secrets and not tem_arquivo:
+        st.error("🚨 Credenciais não encontradas. Configure as 'Secrets' no Streamlit Cloud.")
         return
 
     try:
         df = carregar_dados()
         if df.empty:
-            st.warning("A planilha do Google Sheets está vazia.")
+            # MOSTRAR CAMPO DE UPLOAD SE A PLANILHA ESTIVER VAZIA (PRIMEIRO USO)
+            st.warning("A planilha do Google Sheets está vazia. Você pode importar um backup.")
             uploaded_file = st.file_uploader("📂 Restaurar Backup (CSV Antigo)", type="csv")
-            if uploaded_file and st.button("⬆️ Carregar para Nuvem"):
-                df_upload = pd.read_csv(uploaded_file, sep=";", encoding='utf-8-sig')
-                sheet = conectar_google_sheets()
-                if sheet:
-                    if "Dia_Semana" not in df_upload.columns: df_upload.insert(2, "Dia_Semana", "-")
-                    sheet.append_rows(df_upload.astype(str).values.tolist())
-                    st.success("Backup restaurado!")
+            if uploaded_file is not None:
+                if st.button("⬆️ Carregar para Nuvem"):
+                    df_upload = pd.read_csv(uploaded_file, sep=";", encoding='utf-8-sig') # Tenta ler formato antigo
+                    
+                    # Processa e envia em lote
+                    sheet = conectar_google_sheets()
+                    if sheet:
+                        # Adiciona coluna Dia_Semana se não existir
+                        if "Dia_Semana" not in df_upload.columns:
+                            df_upload.insert(2, "Dia_Semana", "-")
+                        
+                        # Converte tudo para string para evitar erro
+                        df_upload = df_upload.astype(str)
+                        
+                        # Append
+                        sheet.append_rows(df_upload.values.tolist())
+                        st.sidebar.success("Backup restaurado com sucesso! Atualize a página.")
             return
 
         df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
@@ -462,76 +596,166 @@ def pagina_dashboard():
         st.sidebar.markdown("---")
         st.sidebar.subheader("Filtros do Painel")
         
-        d_min = df["Data_Filtro"].min().date() if not df["Data_Filtro"].isnull().all() else datetime.today().date()
-        d_max = df["Data_Filtro"].max().date() if not df["Data_Filtro"].isnull().all() else datetime.today().date()
+        # Filtro de Data Robusto
+        data_min = datetime.today().date()
+        data_max = datetime.today().date()
         
-        c_d1, c_d2 = st.sidebar.columns(2)
-        ini = c_d1.date_input("Início", d_min, format="DD/MM/YYYY")
-        fim = c_d2.date_input("Fim", d_max, format="DD/MM/YYYY")
+        if not df["Data_Filtro"].isnull().all():
+            data_min = df["Data_Filtro"].min().date()
+            data_max = df["Data_Filtro"].max().date()
         
-        lst_setores = sorted(list(df["Setor"].unique()))
-        f_setor = st.sidebar.multiselect("Filtrar por Setor:", options=lst_setores, default=lst_setores)
-        if not f_setor: f_setor = lst_setores
+        c_data1, c_data2 = st.sidebar.columns(2)
+        data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
+        data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
         
-        mask = (df["Data_Filtro"].dt.date >= ini) & (df["Data_Filtro"].dt.date <= fim) & (df["Setor"].isin(f_setor))
-        df_f = df.loc[mask]
+        # --- FILTRO DE SETOR COM LÓGICA SMART ---
+        lista_setores = sorted(list(df["Setor"].unique()))
+        filtro_setor = st.sidebar.multiselect("Filtrar por Setor:", options=lista_setores, default=lista_setores)
         
-        if df_f.empty:
-            st.warning("Nenhum dado encontrado.")
+        # Se o usuário limpar o filtro, mostra tudo (assumindo "Todos")
+        if not filtro_setor:
+            filtro_setor = lista_setores
+        # ----------------------------------------
+        
+        mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final) & (df["Setor"].isin(filtro_setor))
+        df_filtrado = df.loc[mask]
+        
+        if df_filtrado.empty:
+            st.warning("Nenhum dado encontrado para o período/setor selecionado.")
             return
 
-        k1, k2, k3 = st.columns(3)
-        k1.metric("Total", len(df_f), border=True)
-        k2.metric("SAC", len(df_f[df_f["Setor"] == "SAC"]), border=True)
-        k3.metric("Pendências", len(df_f[df_f["Setor"] == "Pendência"]), border=True)
+        # KPIs
+        total = len(df_filtrado)
+        sac_total = len(df_filtrado[df_filtrado["Setor"] == "SAC"])
+        pend_total = len(df_filtrado[df_filtrado["Setor"] == "Pendência"])
+        
+        kpi1, kpi2, kpi3 = st.columns(3)
+        kpi1.metric("Total", total, border=True)
+        kpi2.metric("SAC", sac_total, border=True)
+        kpi3.metric("Pendências", pend_total, border=True)
 
         st.markdown("##")
+
+        # GRÁFICOS NOVOS
         c1, c2 = st.columns(2)
         
         with c1:
             st.subheader("📈 Tendência Diária")
-            trend = df_f.groupby("Data_Filtro").size().reset_index(name='Atendimentos')
-            fig = px.line(trend, x="Data_Filtro", y="Atendimentos", markers=True, title="Volume Diário", line_shape="spline", color_discrete_sequence=['#10b981'], text='Atendimentos')
-            fig.update_traces(textposition="top center")
-            fig.update_xaxes(tickformat="%d/%m", dtick="D1")
+            trend = df_filtrado.groupby("Data_Filtro").size().reset_index(name='Atendimentos')
+            fig = px.line(trend, x="Data_Filtro", y="Atendimentos", markers=True, 
+                          title="Volume de Atendimentos por Dia", line_shape="spline",
+                          color_discrete_sequence=['#10b981'],
+                          text='Atendimentos') # ADICIONADO TEXTO NO GRAFICO
+            fig.update_traces(textposition="top center") # TEXTO EM CIMA DA BOLINHA
+            fig.update_xaxes(tickformat="%d/%m", dtick="D1") 
             st.plotly_chart(fig, use_container_width=True)
 
         with c2:
             st.subheader("⏰ Picos de Demanda (Horário)")
-            df_f['Hora_Int'] = pd.to_datetime(df_f['Hora'], format='%H:%M:%S', errors='coerce').dt.hour
-            total_sec = df_f.groupby('Setor').size().reset_index(name='Total_Setor')
-            heat = df_f.groupby(['Hora_Int', 'Setor']).size().reset_index(name='Atendimentos')
-            heat = pd.merge(heat, total_sec, on='Setor')
-            heat['Pct'] = (heat['Atendimentos'] / heat['Total_Setor']) * 100
+            df_filtrado['Hora_Int'] = pd.to_datetime(df_filtrado['Hora'], format='%H:%M:%S', errors='coerce').dt.hour
             
-            fig = px.line(heat, x='Hora_Int', y='Pct', title="Volume por Faixa Horária (% do Setor)", labels={'Hora_Int': 'Hora', 'Pct': '%'}, color='Setor', markers=True, text='Pct', color_discrete_map={'Pendência': '#3b82f6', 'SAC': '#10b981'})
-            fig.update_traces(texttemplate='%{y:.1f}%', textposition='top center')
+            # --- CÁLCULO SEPARADO POR SETOR (SOLICITADO) ---
+            # Agrupa por Setor para ter o total de cada um
+            total_por_setor = df_filtrado.groupby('Setor').size().reset_index(name='Total_Setor')
+            
+            # Agrupa por Hora e Setor
+            heatmap_data = df_filtrado.groupby(['Hora_Int', 'Setor']).size().reset_index(name='Atendimentos')
+            
+            # Junta as tabelas para calcular a % relativa ao setor
+            heatmap_data = pd.merge(heatmap_data, total_por_setor, on='Setor')
+            heatmap_data['Porcentagem'] = (heatmap_data['Atendimentos'] / heatmap_data['Total_Setor']) * 100
+            
+            fig = px.line(heatmap_data, x='Hora_Int', y='Porcentagem', 
+                         title="Volume por Faixa Horária (% do Setor)",
+                         labels={'Hora_Int': 'Hora do Dia', 'Porcentagem': '% do Setor'},
+                         color='Setor', 
+                         markers=True, # Adiciona marcadores (bolinhas)
+                         text='Porcentagem', 
+                         # --- CORES TROCADAS AQUI ---
+                         color_discrete_map={'Pendência': '#3b82f6', 'SAC': '#10b981'}) # Azul e Verde
+                         
+            fig.update_traces(texttemplate='%{y:.1f}%', textposition='top center') 
             fig.update_layout(xaxis=dict(tickmode='linear', dtick=1))
             st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("---")
+        
+        # LINHA 2
+        
         st.subheader("📊 Motivos CRM")
-        df_crm = df_f[df_f["Motivo_CRM"].notna() & (df_f["Motivo_CRM"] != "-")]
+        df_crm = df_filtrado[df_filtrado["Motivo_CRM"].notna() & (df_filtrado["Motivo_CRM"] != "-")]
         if not df_crm.empty:
-            cont = df_crm['Motivo_CRM'].value_counts().reset_index()
-            cont.columns = ['Motivo', 'Qtd']
-            max_y = cont['Qtd'].max()
-            fig = px.bar(cont.head(15), x='Motivo', y='Qtd', text='Qtd', title="Top Motivos CRM", color_discrete_sequence=['#f43f5e'])
-            fig.update_traces(textposition='outside', cliponaxis=False)
-            fig.update_layout(yaxis_range=[0, max_y * 1.2])
+            contagem = df_crm['Motivo_CRM'].value_counts().reset_index()
+            contagem.columns = ['Motivo CRM', 'Quantidade']
+            
+            # CALCULA O MAXIMO PARA DAR RESPIRO NO GRAFICO (Evita cortar numero)
+            max_y = contagem['Quantidade'].max()
+            
+            # BARRAS VERTICAIS E NÚMEROS EM CIMA
+            fig = px.bar(contagem.head(15).sort_values('Quantidade', ascending=False), 
+                         x='Motivo CRM', y='Quantidade', 
+                         text='Quantidade', # Define o texto como o valor Y
+                         title="Top Motivos CRM",
+                         color_discrete_sequence=['#f43f5e'])
+            
+            # CORREÇÃO DO NÚMERO CORTADO
+            fig.update_traces(textposition='outside', cliponaxis=False) 
+            fig.update_layout(yaxis_range=[0, max_y * 1.2]) # Adiciona 20% de espaço no topo
+            
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("Sem dados de CRM.")
 
         st.markdown("---")
+        
+        # BARRA LATERAL RESTAURADA (UPLOAD)
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📂 Ferramentas")
+        uploaded_file = st.sidebar.file_uploader("Restaurar Backup (.csv)", type="csv")
+        if uploaded_file is not None:
+            if st.sidebar.button("Enviar para Nuvem"):
+                try:
+                    df_upload = pd.read_csv(uploaded_file, sep=";", encoding='utf-8-sig')
+                    sheet = conectar_google_sheets()
+                    if sheet:
+                        # Adiciona coluna Dia_Semana se não existir (para compatibilidade)
+                        if "Dia_Semana" not in df_upload.columns:
+                            # Tenta calcular ou coloca vazio
+                            df_upload.insert(2, "Dia_Semana", "-")
+                        
+                        # Converte para string
+                        df_upload = df_upload.astype(str)
+                        
+                        # Envia
+                        sheet.append_rows(df_upload.values.tolist())
+                        st.sidebar.success("✅ Dados enviados com sucesso!")
+                except Exception as e:
+                    st.sidebar.error(f"Erro no upload: {e}")
+
         st.subheader("📥 Exportação Geral")
-        st.download_button(label="Baixar CSV", data=converter_para_excel_csv(df_f), file_name="relatorio_engage.csv", mime='text/csv')
-        df_display = df_f.sort_values(by=["Data_Filtro", "Hora"], ascending=False).head(50)
+        
+        # Botão de Download
+        csv = converter_para_excel_csv(df_filtrado)
+        st.download_button(
+            label="Baixar Dados Filtrados (.csv)",
+            data=csv,
+            file_name="relatorio_geral_google_sheets.csv",
+            mime='text/csv',
+        )
+        
+        # ORDENAÇÃO CORRIGIDA: PELA DATA REAL (Data_Filtro)
+        df_display = df_filtrado.sort_values(by=["Data_Filtro", "Hora"], ascending=False).head(50)
         st.dataframe(df_display.drop(columns=["Data_Filtro", "Hora_Int"], errors='ignore'), use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"Erro no Dashboard: {e}")
 
-if pagina_escolhida == "Pendências Logísticas": pagina_pendencias()
-elif pagina_escolhida == "SAC / Atendimento": pagina_sac()
-else: pagina_dashboard()
+# ==========================================
+#           ROTEAMENTO
+# ==========================================
+if pagina_escolhida == "Pendências Logísticas":
+    pagina_pendencias()
+elif pagina_escolhida == "SAC / Atendimento":
+    pagina_sac()
+else:
+    pagina_dashboard()
