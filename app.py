@@ -172,14 +172,13 @@ modelos_pendencias = {
 modelos_sac = {
     "OUTROS": "", 
     "RECLAME AQUI": "",
-    "INFORMAÇÃO SOBRE COLETA": "", # Novo
-    "INFORMAÇÃO SOBRE ENTREGA": "", # Novo
-    "INFORMAÇÃO SOBRE O PRODUTO": "", # Novo
-    "INFORMAÇÃO SOBRE O REEMBOLSO": "", # Novo
+    "INFORMAÇÃO SOBRE COLETA": "", 
+    "INFORMAÇÃO SOBRE ENTREGA": "", 
+    "INFORMAÇÃO SOBRE O PRODUTO": "", 
+    "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
     
     "SAUDAÇÃO": """Olá, (Nome do cliente)!\n\nMe chamo {colaborador} e vou prosseguir com o seu atendimento.\nComo posso ajudar?""",
     
-    # --- SCRIPTS NOVOS E ATUALIZADOS ---
     "BARRAR ENTREGA NA TRANSPORTADORA": """Olá, (Nome do cliente)!\n\nSolicitamos à transportadora responsável o bloqueio da entrega. No entanto, caso haja alguma tentativa de entrega no local, pedimos a gentileza de recusar o recebimento no ato.\n\nGostaríamos de informar que o pedido de barragem é definitivo. Por questões logísticas, após essa solicitação, não conseguimos reverter o processo para seguir com a entrega novamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
 
     "ENTREGA RECUSADA": """Olá, (Nome do cliente). Tudo bem?\n\nRecebemos uma notificação da transportadora informando que a entrega do seu pedido foi recusada no endereço de destino.\n\nHouve algum problema na tentativa de entrega ou avaria na embalagem?\n\n· Se deseja receber o produto: Por gentileza, nos confirme o endereço e pontos de referência.\n· Se deseja cancelar: Nos informe por aqui para agilizarmos o processo.\n\nAtenção:\nCaso não tenhamos retorno até {data_limite}, o produto retornará ao nosso estoque e seguiremos com o cancelamento automático.\n\nAguardo seu retorno!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -193,7 +192,6 @@ modelos_sac = {
     "PEDIDO CANCELADO (ENTREGUE)": """Olá, (Nome do cliente).\n\nNotamos pelo rastreio que o pedido foi entregue com sucesso no dia {data_entrega}.\n\nComo a plataforma Amazon já havia processado o reembolso deste pedido anteriormente, precisamos regularizar a situação. Por uma questão de ética e transparência, gostaríamos de confirmar como prefere prosseguir:\n\n1. Autorizar uma nova cobrança (Retrocharge) e ficar com o produto?\n2. Realizar a devolução do item? (Enviaremos um código de postagem sem custos).\n\nAguardamos seu retorno para finalizar este atendimento.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     
     "PEDIDO CANCELADO (EM TRÂNSITO)": """Olá, (Nome do cliente).\n\nVerificamos que a plataforma já seguiu com o seu reembolso integral.\n\nComo o pedido ainda consta em rota, já solicitamos à transportadora que suspenda a entrega. No entanto, caso o entregador compareça ao seu endereço antes da atualização do sistema, orientamos que recuse o recebimento no ato da entrega.\n\nIsso garantirá que o pacote retorne ao nosso estoque automaticamente, finalizando o processo de forma correta.\n\nAgradecemos a compreensão!\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
-    # ---------------------------------
 
     "CANCELAMENTO MARTINS (FRETE)": """Olá, {nome_cliente}!\n\nIdentificamos que, devido à localização de entrega, o valor do frete excedeu o limite operacional permitido para esta transação. Por este motivo, solicitamos a gentileza de seguir com o cancelamento do pedido.\n\nAtenciosamente, {colaborador} | Equipe de Atendimento Engage Eletro.""",
     "CANCELAMENTO MARTINS (ESTOQUE)": """Olá, {nome_cliente}!\n\nDevido a uma indisponibilidade pontual em nosso estoque logístico, não conseguiremos processar o envio do seu pedido desta vez. Para evitar maiores transtornos, pedimos que realize o cancelamento da compra.\n\nAtenciosamente, {colaborador} | Equipe de Atendimento Engage Eletro.""",
@@ -590,7 +588,7 @@ def pagina_dashboard():
                         
                         # Append
                         sheet.append_rows(df_upload.values.tolist())
-                        st.success("Backup restaurado com sucesso! Atualize a página.")
+                        st.sidebar.success("Backup restaurado com sucesso! Atualize a página.")
             return
 
         df["Data_Filtro"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors='coerce')
@@ -610,10 +608,14 @@ def pagina_dashboard():
         data_inicial = c_data1.date_input("Início", data_min, format="DD/MM/YYYY")
         data_final = c_data2.date_input("Fim", data_max, format="DD/MM/YYYY")
         
-        # --- FILTRO DE SETOR RECOLOCADO AQUI ---
-        lista_setores = df["Setor"].unique()
+        # --- FILTRO DE SETOR COM LÓGICA SMART ---
+        lista_setores = sorted(list(df["Setor"].unique()))
         filtro_setor = st.sidebar.multiselect("Filtrar por Setor:", options=lista_setores, default=lista_setores)
-        # ---------------------------------------
+        
+        # Se o usuário limpar o filtro, mostra tudo (assumindo "Todos")
+        if not filtro_setor:
+            filtro_setor = lista_setores
+        # ----------------------------------------
         
         mask = (df["Data_Filtro"].dt.date >= data_inicial) & (df["Data_Filtro"].dt.date <= data_final) & (df["Setor"].isin(filtro_setor))
         df_filtrado = df.loc[mask]
