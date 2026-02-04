@@ -224,7 +224,6 @@ st.sidebar.markdown("---")
 #           CALLBACKS (LÓGICA SEGURA)
 # ==========================================
 def registrar_e_limpar(setor):
-    # Recupera dados do Session State
     sufixo = "_p" if setor == "Pendência" else "_s"
     colab = st.session_state.get(f"colab{sufixo}")
     motivo_opcao = st.session_state.get(f"msg{sufixo}")
@@ -233,22 +232,17 @@ def registrar_e_limpar(setor):
     pedido = st.session_state.get(f"ped{sufixo}")
     crm = st.session_state.get(f"crm{sufixo}")
     
-    # Transportadora (pode não existir no SAC dependendo da opção)
     transp = st.session_state.get(f"transp_p") if setor == "Pendência" else st.session_state.get("tr_ent_sac_conf", "-")
-    # Tenta pegar transportadora de outros campos do SAC se houver
     if setor == "SAC" and transp == "-":
         transp = st.session_state.get("tr_trans_sac", st.session_state.get("tr_fisc_sac", "-"))
 
-    # Salva
     sucesso = salvar_registro(setor, colab, motivo_opcao, portal, nf, pedido, crm, transp)
     
     if sucesso:
-        # Marca sucesso para exibir mensagem
         st.session_state[f'sucesso_recente{sufixo}'] = True
         
         # Limpa campos
         campos_para_limpar = [f"cliente{sufixo}", f"nf{sufixo}", f"ped{sufixo}"]
-        # Campos dinâmicos do SAC
         if setor == "SAC":
             campos_para_limpar.extend(["end_coleta_sac", "fab_in_7", "cont_assist_in_7", "data_comp_out_7", "nf_out_7", "link_out_7", "cod_post_sac", "tr_ent_sac_conf", "data_ent_sac", "fab_glp", "site_glp", "val_desc", "prev_ent", "link_rast", "nf_rast", "tr_trans_sac", "tr_fisc_sac", "rua_ins", "cep_ins", "num_ins", "bair_ins", "cid_ins", "uf_ins", "comp_ins", "ref_ins", "data_limite_recusa", "data_entrega_canc_ent"])
             
@@ -260,15 +254,6 @@ def registrar_e_limpar(setor):
 #           PÁGINA PENDÊNCIAS
 # ==========================================
 def pagina_pendencias():
-    if st.session_state.get('sucesso_recente_p'):
-        st.toast("Registrado e Limpo!", icon="✅")
-        # Recupera texto gerado (armazenado antes do rerun)
-        if 'ultimo_texto_p' in st.session_state:
-             st.info("📝 Último texto gerado:")
-             st.code(st.session_state['ultimo_texto_p'], language="text")
-             copiar_para_clipboard(st.session_state['ultimo_texto_p'])
-        st.session_state['sucesso_recente_p'] = False
-
     st.title("🚚 Pendências Logísticas")
     st.markdown("---")
     col1, col2 = st.columns([1, 1.5], gap="medium")
@@ -305,29 +290,33 @@ def pagina_pendencias():
         else:
             texto_final = ""
         
+        # --- ÁREA DE SUCESSO / CÓPIA PERMANENTE ---
+        # Se houve sucesso recente, mostra o aviso e atualiza o texto persistente
+        if st.session_state.get('sucesso_recente_p'):
+            st.toast("Registrado e Limpo!", icon="✅")
+            st.session_state['texto_persistente_p'] = texto_final
+            st.session_state['sucesso_recente_p'] = False
+        
+        # Mostra o preview atual (enquanto edita)
         st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
         # Botão com Callback
-        if st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência",)):
-            # Armazena o texto atual para mostrar após o rerun
-            st.session_state['ultimo_texto_p'] = texto_final
-            # O rerun acontece automaticamente pelo on_click
+        st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência",))
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # MOSTRA O ÚLTIMO TEXTO GERADO (PERMANENTE ATÉ O PRÓXIMO)
+        if 'texto_persistente_p' in st.session_state:
+            st.markdown("---")
+            st.info("📝 Último texto registrado (Cópia Segura):")
+            st.code(st.session_state['texto_persistente_p'], language="text")
+            copiar_para_clipboard(st.session_state['texto_persistente_p'])
 
 # ==========================================
 #           PÁGINA SAC
 # ==========================================
 def pagina_sac():
-    if st.session_state.get('sucesso_recente_s'):
-        st.toast("Registrado e Limpo!", icon="✅")
-        if 'ultimo_texto_s' in st.session_state:
-             st.info("📝 Último texto gerado:")
-             st.code(st.session_state['ultimo_texto_s'], language="text")
-             copiar_para_clipboard(st.session_state['ultimo_texto_s'])
-        st.session_state['sucesso_recente_s'] = False
-
     st.title("🎧 SAC / Atendimento")
     st.markdown("---")
     col1, col2 = st.columns([1, 1.5], gap="medium")
@@ -449,10 +438,20 @@ def pagina_sac():
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
         # Botão com Callback
-        if st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC",)):
-            st.session_state['ultimo_texto_s'] = texto_final
-            
+        st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC",))
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # --- ÁREA DE SUCESSO / CÓPIA PERMANENTE ---
+        if st.session_state.get('sucesso_recente_s'):
+            st.toast("Registrado e Limpo!", icon="✅")
+            st.session_state['texto_persistente_s'] = texto_final
+            st.session_state['sucesso_recente_s'] = False
+
+        if 'texto_persistente_s' in st.session_state:
+            st.markdown("---")
+            st.info("📝 Último texto registrado (Cópia Segura):")
+            st.code(st.session_state['texto_persistente_s'], language="text")
+            copiar_para_clipboard(st.session_state['texto_persistente_s'])
 
 # ==========================================
 #           DASHBOARD
