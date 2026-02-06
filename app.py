@@ -157,7 +157,7 @@ modelos_sac = {
     "INFORMAÇÃO SOBRE ENTREGA": "", 
     "INFORMAÇÃO SOBRE O PRODUTO": "", 
     "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
-    "COMPROVANTE DE ENTREGA (MARTINS)": "", # Novo (apenas registro)
+    "COMPROVANTE DE ENTREGA (MARTINS)": "", 
 
     "ESTOQUE FALTANTE": """Olá, (Nome do cliente)!\n\nGostaríamos de pedir sinceras desculpas, mas tivemos um erro técnico em nosso anúncio e, infelizmente, o produto que você comprou está temporariamente fora de estoque.\n\nPara sua segurança e comodidade, a {portal} processará o seu reembolso automaticamente nos próximos dias.\n\nLamentamos muito pelo transtorno e já estamos trabalhando para que isso não ocorra novamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
     
@@ -313,7 +313,6 @@ def pagina_pendencias():
         texto_base = texto_cru.replace("{transportadora}", transp).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
         if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
         
-        # ATUALIZADO: Inclui os novos motivos sem texto
         motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO", "REENTREGA", "AGUARDANDO TRANSPORTADORA"]
         
         if opcao not in motivos_sem_texto:
@@ -331,7 +330,6 @@ def pagina_pendencias():
         st.write("")
         st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
         
-        # Passa o texto_final calculado como argumento
         st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência", texto_final))
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -436,7 +434,7 @@ def pagina_sac():
         texto_base = texto_base.replace("(Nome do cliente)", nome_cliente_str)
         if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
         
-        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)", "ESTOQUE FALTANTE", "COMPROVANTE DE ENTREGA (MARTINS)"] + lista_livre_escrita
+        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)", "COMPROVANTE DE ENTREGA (MARTINS)"] + lista_livre_escrita
         scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
         
         if opcao not in excecoes_nf and opcao not in scripts_martins:
@@ -458,7 +456,6 @@ def pagina_sac():
              ped_str = numero_pedido if numero_pedido else "......"
              texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
         elif opcao == "ESTOQUE FALTANTE":
-             # Substitui {portal} pelo valor do portal
              texto_final = texto_base.replace("{portal}", str(portal))
         elif opcao == "COMPROVANTE DE ENTREGA (MARTINS)":
              texto_final = ""
