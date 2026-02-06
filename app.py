@@ -493,7 +493,7 @@ def pagina_sac():
 #           DASHBOARD
 # ==========================================
 def pagina_dashboard():
-    st.title("📊 Dashboard Gerencial (Nuvem)")
+    st.title("📊 Dashboard Gerencial")
     st.markdown("Visão estratégica em tempo real.")
     st.markdown("---")
 
