@@ -151,7 +151,16 @@ modelos_pendencias = {
 #      SCRIPTS SAC
 # ==========================================
 modelos_sac = {
-    "OUTROS": "", "RECLAME AQUI": "", "INFORMAÇÃO SOBRE COLETA": "", "INFORMAÇÃO SOBRE ENTREGA": "", "INFORMAÇÃO SOBRE O PRODUTO": "", "INFORMAÇÃO SOBRE O REEMBOLSO": "",
+    "OUTROS": "", 
+    "RECLAME AQUI": "",
+    "INFORMAÇÃO SOBRE COLETA": "", 
+    "INFORMAÇÃO SOBRE ENTREGA": "", 
+    "INFORMAÇÃO SOBRE O PRODUTO": "", 
+    "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
+    "COMPROVANTE DE ENTREGA (MARTINS)": "", # Novo (apenas registro)
+
+    "ESTOQUE FALTANTE": """Olá, (Nome do cliente)!\n\nGostaríamos de pedir sinceras desculpas, mas tivemos um erro técnico em nosso anúncio e, infelizmente, o produto que você comprou está temporariamente fora de estoque.\n\nPara sua segurança e comodidade, a {portal} processará o seu reembolso automaticamente nos próximos dias.\n\nLamentamos muito pelo transtorno e já estamos trabalhando para que isso não ocorra novamente.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
+    
     "SAUDAÇÃO": """Olá, (Nome do cliente)!\n\nMe chamo {colaborador} e vou prosseguir com o seu atendimento.\nComo posso ajudar?""",
     
     "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)": """Olá, (Nome do cliente)!\n\nPodemos verificar a possibilidade de alteração de endereço desde que não haja uma mudança referente a CIDADE ou ESTADO. Gentileza encaminhar o endereço completo no formato abaixo:\n\nRua:\nCep:\nNúmero:\nBairro:\nCidade:\nEstado:\nComplemento:\nPonto de Referência:\n2 telefones ativos:\n\nApós o envio dos dados, estaremos gerando uma Carta de Correção de Endereço e encaminhando para a transportadora para verificamos a possibilidade de entrega no local indicado.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -205,8 +214,8 @@ modelos_sac = {
 }
 
 # ORDENAÇÃO DE LISTA
-lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k not in ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]])
-lista_motivos_contato.extend(["INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "RECLAME AQUI", "OUTROS"])
+lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k not in ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "COMPROVANTE DE ENTREGA (MARTINS)"]])
+lista_motivos_contato.extend(["INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "RECLAME AQUI", "COMPROVANTE DE ENTREGA (MARTINS)", "OUTROS"])
 
 # ==========================================
 #           DESIGN
@@ -270,7 +279,7 @@ def registrar_e_limpar(setor, texto_pronto):
             
         for campo in campos_para_limpar:
             if campo in st.session_state:
-                st.session_state[campo] = ""
+                del st.session_state[campo]
 
 # ==========================================
 #           PÁGINA PENDÊNCIAS
@@ -427,7 +436,7 @@ def pagina_sac():
         texto_base = texto_base.replace("(Nome do cliente)", nome_cliente_str)
         if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
         
-        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)"] + lista_livre_escrita
+        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)", "ESTOQUE FALTANTE", "COMPROVANTE DE ENTREGA (MARTINS)"] + lista_livre_escrita
         scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
         
         if opcao not in excecoes_nf and opcao not in scripts_martins:
@@ -448,6 +457,11 @@ def pagina_sac():
              corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
              ped_str = numero_pedido if numero_pedido else "......"
              texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
+        elif opcao == "ESTOQUE FALTANTE":
+             # Substitui {portal} pelo valor do portal
+             texto_final = texto_base.replace("{portal}", str(portal))
+        elif opcao == "COMPROVANTE DE ENTREGA (MARTINS)":
+             texto_final = ""
         elif opcao in scripts_martins:
             texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
         else:
