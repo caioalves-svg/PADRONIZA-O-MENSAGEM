@@ -213,9 +213,9 @@ modelos_sac = {
     "SOLICITAÇÃO DE FOTOS E VÍDEOS (AVARIA)": """Olá, (Nome do cliente)!\n\nPedimos sinceras desculpas pelos transtornos causados com a chegada do seu produto. Entendemos sua frustração e queremos resolver isso o mais rápido possível.\n\nPara darmos continuidade ao atendimento e agilizarmos a solução junto ao setor responsável, precisamos que nos envie, por gentileza:\n· Fotos nítidas do produto e da embalagem onde consta a avaria;\n· Um breve vídeo mostrando o detalhe do dano (se possível).\n\nAssim que recebermos as evidências, faremos a análise imediata para prosseguir com as tratativas de resolução.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}"""
 }
 
-# ORDENAÇÃO DE LISTA
-lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k not in ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "COMPROVANTE DE ENTREGA (MARTINS)"]])
-lista_motivos_contato.extend(["INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO", "RECLAME AQUI", "COMPROVANTE DE ENTREGA (MARTINS)", "OUTROS"])
+# ORDENAÇÃO DE LISTA: Alfabética com exceção do 'OUTROS' que fica por último
+lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k != "OUTROS"])
+lista_motivos_contato.append("OUTROS")
 
 # ==========================================
 #           DESIGN
@@ -303,7 +303,7 @@ def pagina_pendencias():
         transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
         st.markdown("---")
         st.subheader("2. Motivo")
-        opcao = st.selectbox("Selecione o caso:", list(modelos_pendencias.keys()), key="msg_p")
+        opcao = st.selectbox("Selecione o caso:", sorted(list(modelos_pendencias.keys())), key="msg_p")
 
     with col2:
         st.subheader("3. Visualização")
