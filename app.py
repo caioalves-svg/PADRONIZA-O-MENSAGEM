@@ -174,7 +174,8 @@ modelos_sac = {
     "INFORMAÇÃO SOBRE ENTREGA": "", 
     "INFORMAÇÃO SOBRE O PRODUTO": "", 
     "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
-    "COMPROVANTE DE ENTREGA (MARTINS)": "", 
+    "COMPROVANTE DE ENTREGA (MARTINS)": "",
+    "TRATATIVA DE COBRANÇA": "",
     
     "BAIXA ERRÔNEA": """Olá, (Nome do cliente).\n\nGostaríamos de pedir sinceras desculpas por uma falha operacional. Identificamos que o seu pedido foi marcado como "entregue" ou "finalizado" precocemente em nosso sistema, mas confirmamos que ele ainda está em processo de envio.\n\nJá estamos corrigindo essa informação internamente. Para sua tranquilidade, o prazo de entrega permanece o mesmo e você receberá o código de rastreio atualizado em breve.\n\nFique tranquilo(a): não haverá qualquer prejuízo ao seu recebimento. Agradecemos sua paciência e seguimos à disposição.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
 
