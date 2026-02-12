@@ -9,8 +9,9 @@ from datetime import datetime
 import streamlit.components.v1 as components
 
 # ==========================================
-#      CONFIGURAÇÃO INICIAL
+#      CONFIGURAÇÃO INICIAL (PRIORIDADE 0)
 # ==========================================
+# Esta deve ser OBRIGATORIAMENTE a primeira linha de comando Streamlit
 st.set_page_config(page_title="Sistema Integrado Engage", page_icon="🚀", layout="wide")
 
 # ==========================================
@@ -118,7 +119,6 @@ def copiar_para_clipboard(texto):
 # ==========================================
 colaboradores_pendencias = sorted(["Ana", "Mariana", "Gabriela", "Layra", "Maria Eduarda", "Akisia", "Marcelly", "Camilla", "Michelle"])
 
-# LISTA COMPLETA SAC
 colaboradores_sac = sorted([
     "Ana Carolina", "Ana Victoria", "Eliane", "Cassia", "Juliana", "Tamara", "Rafaela", "Telliane", "Isadora", "Lorrayne", "Leticia", "Julia", "Sara", "Cauê", "Larissa",
     "Marcelly", "Camilla", "Akisia", "Mariana", "Gabriela", "Thais", "Maria Clara", "Izabel", "Jessica", "Marina"
@@ -166,9 +166,11 @@ modelos_sac = {
     "INFORMAÇÃO SOBRE ENTREGA": "", 
     "INFORMAÇÃO SOBRE O PRODUTO": "", 
     "INFORMAÇÃO SOBRE O REEMBOLSO": "", 
-    "COMPROVANTE DE ENTREGA (MARTINS)": "",
-    "TRATATIVA DE COBRANÇA": "", 
+    "COMPROVANTE DE ENTREGA (MARTINS)": "", 
     
+    # --- NOVOS MOTIVOS ---
+    "RETIRADA DE ENTREGA": """Olá, (Nome do cliente)!\n\nO atendimento é referente ao seu pedido de número: ......\n\nPara autorizarmos a sua retirada, solicitamos o envio dos dados abaixo para a liberação do seu acesso ao galpão:\n\nNOME DO TITULAR:\nCPF:\nPLACA DO VEÍCULO:\nMARCA/MODELO:\nFOTO DO DOCUMENTO (RG OU CNH)\n\nRessaltamos que, por se tratar de uma unidade logística parceira, o envio dessas informações é um protocolo obrigatório de segurança para o controle de entrada.\n\nAtenciosamente,\nEquipe de Atendimento Engage Eletro\n{colaborador}""",
+
     "BAIXA ERRÔNEA": """Olá, (Nome do cliente).\n\nGostaríamos de pedir sinceras desculpas por uma falha operacional. Identificamos que o seu pedido foi marcado como "entregue" ou "finalizado" precocemente em nosso sistema, mas confirmamos que ele ainda está em processo de envio.\n\nJá estamos corrigindo essa informação internamente. Para sua tranquilidade, o prazo de entrega permanece o mesmo e você receberá o código de rastreio atualizado em breve.\n\nFique tranquilo(a): não haverá qualquer prejuízo ao seu recebimento. Agradecemos sua paciência e seguimos à disposição.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
 
     "COBRANÇA INDEVIDA": """Olá, (Nome do cliente).\n\nPedimos desculpas pela mensagem de cobrança enviada anteriormente. Houve um erro sistêmico e solicitamos que, por gentileza, desconsidere o aviso.\n\nVerificamos aqui que seu pedido já foi devidamente concluído e está tudo certo com o seu pagamento. Lamentamos o equívoco e seguimos à disposição para qualquer dúvida.\n\nEquipe de atendimento Engage Eletro.\n{colaborador}""",
@@ -236,36 +238,6 @@ lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k != "OUTROS"])
 lista_motivos_contato.append("OUTROS")
 
 # ==========================================
-#           DESIGN
-# ==========================================
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    .stApp { background-color: #f8fafc !important; font-family: 'Inter', sans-serif; }
-    section[data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e2e8f0; }
-    .stApp, .stApp * { color: #334155 !important; }
-    h1, h2, h3, h4, h5, h6 { color: #0f172a !important; font-weight: 700; }
-    .stSelectbox div[data-baseweb="select"] > div, .stTextInput input, .stDateInput input, .stTextArea textarea {
-        background-color: #ffffff !important; border: 1px solid #94a3b8 !important; border-radius: 8px !important; color: #1e293b !important;
-    }
-    .preview-box { background-color: #f1f5f9 !important; border-left: 5px solid #3b82f6; border-radius: 4px; padding: 20px; color: #334155 !important; white-space: pre-wrap; margin-top: 10px; font-size: 14px; }
-    .botao-registrar .stButton button { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; color: white !important; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; width: 100%; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
-    .botao-registrar .stButton button:hover { transform: translateY(-2px); }
-    .stDownloadButton button { background-color: #3b82f6 !important; color: white !important; border: none !important; border-radius: 8px; font-weight: 600; width: 100%; }
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
-</style>
-""", unsafe_allow_html=True)
-
-# ==========================================
-#           MENU
-# ==========================================
-if os.path.exists("logo.png"):
-    st.sidebar.image("logo.png", width=180)
-st.sidebar.caption("MENU PRINCIPAL")
-pagina_escolhida = st.sidebar.radio("Navegação:", ("Pendências Logísticas", "SAC / Atendimento", "📊 Dashboard Gerencial"), label_visibility="collapsed")
-st.sidebar.markdown("---")
-
-# ==========================================
 #           CALLBACKS (LÓGICA SEGURA)
 # ==========================================
 def registrar_e_limpar(setor, texto_pronto):
@@ -315,53 +287,70 @@ def pagina_pendencias():
     st.markdown("---")
 
     if tipo_fluxo == "Pendência":
-        col1, col2 = st.columns([1, 1.5], gap="medium")
-        with col1:
-            st.subheader("1. Configuração")
+        # ==================================================
+        #  NOVO LAYOUT HORIZONTAL PENDÊNCIAS
+        # ==================================================
+        st.subheader("1. Configuração")
+        
+        # Linha 1
+        c1, c2, c3 = st.columns(3)
+        with c1:
             colab = st.selectbox("👤 Colaborador:", colaboradores_pendencias, key="colab_p")
+        with c2:
             nome_cliente = st.text_input("👤 Nome do Cliente:", key="cliente_p")
+        with c3:
             portal = st.selectbox("🛒 Portal:", lista_portais, key="portal_p")
+            
+        # Linha 2
+        c4, c5, c6, c7 = st.columns(4)
+        with c4:
             nota_fiscal = st.text_input("📄 Nota Fiscal:", key="nf_p")
+        with c5:
             numero_pedido = st.text_input("📦 Número do Pedido:", key="ped_p")
+        with c6:
             motivo_crm = st.selectbox("📂 Motivo CRM:", lista_motivo_crm, key="crm_p")
+        with c7:
             transp = st.selectbox("🚛 Qual a transportadora?", lista_transportadoras, key="transp_p")
-            st.markdown("---")
-            st.subheader("2. Motivo")
-            opcao = st.selectbox("Selecione o caso:", sorted(list(modelos_pendencias.keys())), key="msg_p")
-
-        with col2:
-            st.subheader("3. Visualização")
-            texto_cru = modelos_pendencias[opcao]
-            nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
-            assinatura_nome = colab if "AMAZON" not in portal else ""
-            texto_base = texto_cru.replace("{transportadora}", str(transp)).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
-            if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
             
-            motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO", "REENTREGA", "AGUARDANDO TRANSPORTADORA"]
-            
-            if opcao not in motivos_sem_texto:
-                ped_str = numero_pedido if numero_pedido else "..."
-                frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
-                if "\n" in texto_base:
-                    partes = texto_base.split("\n", 1)
-                    texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
-                else:
-                    texto_final = f"{frase_pedido}\n\n{texto_base}"
+        st.markdown("---")
+        st.subheader("2. Motivo e Visualização")
+        
+        # Motivo logo acima do texto
+        opcao = st.selectbox("Selecione o caso:", sorted(list(modelos_pendencias.keys())), key="msg_p")
+        
+        # Lógica de Texto
+        texto_cru = modelos_pendencias[opcao]
+        nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
+        assinatura_nome = colab if "AMAZON" not in portal else ""
+        texto_base = texto_cru.replace("{transportadora}", str(transp)).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
+        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
+        
+        motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO", "REENTREGA", "AGUARDANDO TRANSPORTADORA"]
+        
+        if opcao not in motivos_sem_texto:
+            ped_str = numero_pedido if numero_pedido else "..."
+            frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
+            if "\n" in texto_base:
+                partes = texto_base.split("\n", 1)
+                texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
             else:
-                texto_final = ""
-            
-            st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
-            st.write("")
-            st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-            
-            st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência", texto_final))
-            st.markdown('</div>', unsafe_allow_html=True)
+                texto_final = f"{frase_pedido}\n\n{texto_base}"
+        else:
+            texto_final = ""
+        
+        # Visualização e Botão Embaixo
+        st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
+        st.write("")
+        st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
+        
+        st.button("✅ Registrar e Copiar", key="btn_save_pend", on_click=registrar_e_limpar, args=("Pendência", texto_final))
+        st.markdown('</div>', unsafe_allow_html=True)
 
-            if 'texto_persistente_p' in st.session_state:
-                st.markdown("---")
-                st.info("📝 Último texto registrado (Cópia Segura):")
-                st.code(st.session_state['texto_persistente_p'], language="text")
-                copiar_para_clipboard(st.session_state['texto_persistente_p'])
+        if 'texto_persistente_p' in st.session_state:
+            st.markdown("---")
+            st.info("📝 Último texto registrado (Cópia Segura):")
+            st.code(st.session_state['texto_persistente_p'], language="text")
+            copiar_para_clipboard(st.session_state['texto_persistente_p'])
 
     elif tipo_fluxo == "Atraso":
         st.subheader("Registro de Atraso")
@@ -409,140 +398,165 @@ def pagina_sac():
 
     st.title("🎧 SAC / Atendimento")
     st.markdown("---")
-    col1, col2 = st.columns([1, 1.5], gap="medium")
+    
+    # ==================================================
+    #  NOVO LAYOUT HORIZONTAL SAC
+    # ==================================================
     dados = {}
-    with col1:
-        st.subheader("1. Configuração Obrigatória")
+    
+    st.subheader("1. Configuração Obrigatória")
+    
+    # Linha 1
+    c1, c2, c3 = st.columns(3)
+    with c1:
         colab = st.selectbox("👤 Colaborador:", colaboradores_sac, key="colab_s")
+    with c2:
         nome_cliente = st.text_input("👤 Nome do Cliente:", key="cliente_s")
+    with c3:
         portal = st.selectbox("🛒 Portal:", lista_portais, key="portal_s")
+        
+    # Linha 2
+    c4, c5, c6 = st.columns(3)
+    with c4:
         nota_fiscal = st.text_input("📄 Nota Fiscal:", key="nf_s")
+    with c5:
         numero_pedido = st.text_input("📦 Número do Pedido:", key="ped_s")
+    with c6:
         motivo_crm = st.selectbox("📂 Motivo CRM:", lista_motivo_crm, key="crm_s")
+    
+    st.markdown("---")
+    
+    # Seleção de Motivo
+    opcao = st.selectbox("💬 Qual o motivo do contato?", lista_motivos_contato, key="msg_s")
+    
+    # Campos Condicionais (Aparecem logo abaixo da seleção do motivo)
+    op_upper = opcao.upper()
+    if "SOLICITAÇÃO DE COLETA" in op_upper:
+        st.info("🚚 Endereço")
+        dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):", key="end_coleta_sac")
+    elif "ASSISTÊNCIA TÉCNICA (DENTRO DOS 7 DIAS)" in op_upper:
+        st.info("🔧 Dados da Assistência")
+        dados["{fabricante}"] = st.text_input("Nome da Fabricante:", key="fab_in_7")
+        dados["{contato_assistencia}"] = st.text_area("Endereço/Telefone/Infos:", key="cont_assist_in_7")
+    elif "ASSISTÊNCIA TÉCNICA (FORA DOS 7 DIAS)" in op_upper:
+        st.info("📅 Dados da Compra")
+        dados["{data_compra}"] = st.text_input("Data da Compra:", key="data_comp_out_7")
+        dados["{nota_fiscal}"] = st.text_input("Número da NF (Repetir se necessário):", key="nf_out_7")
+        dados["{link_posto}"] = st.text_input("Link do Posto Autorizado:", key="link_out_7")
+    elif "CÓDIGO POSTAL" in op_upper or "CÓDIGO COLETA" in op_upper:
+        st.info("📮 Código de Postagem")
+        k = "{codigo_postagem}" if "CÓDIGO POSTAL" in op_upper else "{codigo_coleta}"
+        dados[k] = st.text_input("Código de Coleta/Postagem:", key="cod_post_sac")
+    elif "CONFIRMAÇÃO DE ENTREGA" in op_upper:
+        st.info("🚚 Dados da Entrega")
+        dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_ent_sac_conf")
+        dados["{data_entrega}"] = st.text_input("Data da Entrega:", key="data_ent_sac")
+    elif "CONVERSÃO GLP" in op_upper:
+        st.info("🔥 Dados do Fabricante")
+        dados["{fabricante}"] = st.text_input("Nome do Fabricante:", key="fab_glp")
+        dados["{site_fabricante}"] = st.text_input("Site/Contato:", key="site_glp")
+    elif "OFERECER DESCONTO" in op_upper:
+        st.info("💰 Proposta de Valor")
+        dados["{valor_desconto}"] = st.text_input("Valor do reembolso (R$):", key="val_desc")
+    elif "MERCADORIA EM TRÂNSITO" in op_upper:
+        st.info("📦 Rastreamento")
+        dados["{previsao_entrega}"] = st.text_input("Previsão de Entrega:", key="prev_ent")
+        dados["{link_rastreio}"] = st.text_input("Link de Rastreio:", key="link_rast")
+        dados["{nota_fiscal}"] = st.text_input("Nota Fiscal:", key="nf_rast")
+        dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_trans_sac")
+    elif "FISCALIZAÇÃO" in op_upper:
+        st.info("🛑 Fiscalização")
+        dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_fisc_sac")
+    elif "INSUCESSO NA ENTREGA" in op_upper:
+        st.info("🏠 Endereço para Confirmar")
+        dados["{rua}"] = st.text_input("Rua:", key="rua_ins")
+        dados["{cep}"] = st.text_input("CEP:", key="cep_ins")
+        dados["{numero}"] = st.text_input("Número:", key="num_ins")
+        dados["{bairro}"] = st.text_input("Bairro:", key="bair_ins")
+        dados["{cidade}"] = st.text_input("Cidade:", key="cid_ins")
+        dados["{estado}"] = st.text_input("Estado:", key="uf_ins")
+        dados["{complemento}"] = st.text_input("Complemento (opcional):", value="", key="comp_ins")
+        dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="", key="ref_ins")
+    elif "ENTREGA RECUSADA" in op_upper:
+        st.info("📅 Dados de Prazo")
+        dados["{data_limite}"] = st.text_input("Data/Horário limite:", key="data_limite_recusa")
+    elif "PEDIDO CANCELADO (ENTREGUE)" in op_upper:
+        st.info("📅 Dados da Entrega")
+        dados["{data_entrega}"] = st.text_input("Data da Entrega:", key="data_entrega_canc_ent")
+
+    st.markdown("---")
+    st.subheader("2. Visualização")
+    
+    lista_livre_escrita = ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]
+    
+    if opcao in lista_livre_escrita:
+        label_texto = "Digite a mensagem personalizada:"
+        if opcao == "RECLAME AQUI": label_texto = "Digite a resposta do Reclame Aqui:"
+        elif "INFORMAÇÃO" in opcao: label_texto = f"Detalhes sobre {opcao}:"
+        texto_base = st.text_area(label_texto, height=200)
+        if texto_base: texto_base += f"\n\nEquipe de atendimento Engage Eletro.\n{{colaborador}}"
+    else:
+        texto_base = modelos_sac.get(opcao, "")
+
+    nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
+    texto_base = texto_base.replace("(Nome do cliente)", nome_cliente_str)
+    if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
+    
+    excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)", "ESTOQUE FALTANTE", "COMPROVANTE DE ENTREGA (MARTINS)", "PEDIDO AMAZON FBA", "BAIXA ERRÔNEA", "COBRANÇA INDEVIDA", "INFORMAÇÃO EMBALAGEM", "RETIRADA DE ENTREGA"] + lista_livre_escrita
+    scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
+    
+    if opcao not in excecoes_nf and opcao not in scripts_martins:
+        ped_str = numero_pedido if numero_pedido else "..."
+        frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
+        if "\n" in texto_base:
+            partes = texto_base.split("\n", 1)
+            texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
+        else:
+            texto_final = f"{frase_pedido}\n\n{texto_base}"
+    elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
+            raw_text = modelos_sac["BARRAR ENTREGA NA TRANSPORTADORA"]
+            corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
+            ped_str = numero_pedido if numero_pedido else "......"
+            texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
+    elif opcao == "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)":
+            raw_text = modelos_sac["ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)"]
+            corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
+            ped_str = numero_pedido if numero_pedido else "......"
+            texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
+    elif opcao == "RETIRADA DE ENTREGA":
+            # Lógica específica para Retirada
+            raw_text = modelos_sac["RETIRADA DE ENTREGA"]
+            ped_str = numero_pedido if numero_pedido else "......"
+            texto_final = raw_text.replace("......", ped_str).replace("(Nome do cliente)", nome_cliente_str)
+    elif opcao == "ESTOQUE FALTANTE":
+            texto_final = texto_base.replace("{portal}", str(portal))
+    elif opcao == "COMPROVANTE DE ENTREGA (MARTINS)":
+            texto_final = ""
+    elif opcao in scripts_martins:
+        texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
+    else:
+        texto_final = texto_base
+
+    assinatura_nome = colab if "AMAZON" not in portal else ""
+    texto_final = texto_final.replace("{colaborador}", assinatura_nome)
+    
+    for chave, valor in dados.items():
+        substituto = valor if valor else "................"
+        texto_final = texto_final.replace(chave, substituto)
+    
+    st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
+    st.write("")
+    st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
+    
+    # Passa o texto_final (JÁ preenchido) para o callback
+    st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC", texto_final))
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if 'texto_persistente_s' in st.session_state:
         st.markdown("---")
-        opcao = st.selectbox("💬 Qual o motivo do contato?", lista_motivos_contato, key="msg_s")
-        
-        op_upper = opcao.upper()
-        if "SOLICITAÇÃO DE COLETA" in op_upper:
-            st.info("🚚 Endereço")
-            dados["{endereco_resumido}"] = st.text_input("Endereço da coleta (Bairro/Cidade):", key="end_coleta_sac")
-        elif "ASSISTÊNCIA TÉCNICA (DENTRO DOS 7 DIAS)" in op_upper:
-            st.info("🔧 Dados da Assistência")
-            dados["{fabricante}"] = st.text_input("Nome da Fabricante:", key="fab_in_7")
-            dados["{contato_assistencia}"] = st.text_area("Endereço/Telefone/Infos:", key="cont_assist_in_7")
-        elif "ASSISTÊNCIA TÉCNICA (FORA DOS 7 DIAS)" in op_upper:
-            st.info("📅 Dados da Compra")
-            dados["{data_compra}"] = st.text_input("Data da Compra:", key="data_comp_out_7")
-            dados["{nota_fiscal}"] = st.text_input("Número da NF (Repetir se necessário):", key="nf_out_7")
-            dados["{link_posto}"] = st.text_input("Link do Posto Autorizado:", key="link_out_7")
-        elif "CÓDIGO POSTAL" in op_upper or "CÓDIGO COLETA" in op_upper:
-            st.info("📮 Código de Postagem")
-            k = "{codigo_postagem}" if "CÓDIGO POSTAL" in op_upper else "{codigo_coleta}"
-            dados[k] = st.text_input("Código de Coleta/Postagem:", key="cod_post_sac")
-        elif "CONFIRMAÇÃO DE ENTREGA" in op_upper:
-            st.info("🚚 Dados da Entrega")
-            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_ent_sac_conf")
-            dados["{data_entrega}"] = st.text_input("Data da Entrega:", key="data_ent_sac")
-        elif "CONVERSÃO GLP" in op_upper:
-            st.info("🔥 Dados do Fabricante")
-            dados["{fabricante}"] = st.text_input("Nome do Fabricante:", key="fab_glp")
-            dados["{site_fabricante}"] = st.text_input("Site/Contato:", key="site_glp")
-        elif "OFERECER DESCONTO" in op_upper:
-            st.info("💰 Proposta de Valor")
-            dados["{valor_desconto}"] = st.text_input("Valor do reembolso (R$):", key="val_desc")
-        elif "MERCADORIA EM TRÂNSITO" in op_upper:
-            st.info("📦 Rastreamento")
-            dados["{previsao_entrega}"] = st.text_input("Previsão de Entrega:", key="prev_ent")
-            dados["{link_rastreio}"] = st.text_input("Link de Rastreio:", key="link_rast")
-            dados["{nota_fiscal}"] = st.text_input("Nota Fiscal:", key="nf_rast")
-            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_trans_sac")
-        elif "FISCALIZAÇÃO" in op_upper:
-            st.info("🛑 Fiscalização")
-            dados["{transportadora}"] = st.selectbox("Transportadora:", lista_transportadoras, key="tr_fisc_sac")
-        elif "INSUCESSO NA ENTREGA" in op_upper:
-            st.info("🏠 Endereço para Confirmar")
-            dados["{rua}"] = st.text_input("Rua:", key="rua_ins")
-            dados["{cep}"] = st.text_input("CEP:", key="cep_ins")
-            dados["{numero}"] = st.text_input("Número:", key="num_ins")
-            dados["{bairro}"] = st.text_input("Bairro:", key="bair_ins")
-            dados["{cidade}"] = st.text_input("Cidade:", key="cid_ins")
-            dados["{estado}"] = st.text_input("Estado:", key="uf_ins")
-            dados["{complemento}"] = st.text_input("Complemento (opcional):", value="", key="comp_ins")
-            dados["{referencia}"] = st.text_input("Ponto de Referência (opcional):", value="", key="ref_ins")
-        elif "ENTREGA RECUSADA" in op_upper:
-            st.info("📅 Dados de Prazo")
-            dados["{data_limite}"] = st.text_input("Data/Horário limite:", key="data_limite_recusa")
-        elif "PEDIDO CANCELADO (ENTREGUE)" in op_upper:
-            st.info("📅 Dados da Entrega")
-            dados["{data_entrega}"] = st.text_input("Data da Entrega:", key="data_entrega_canc_ent")
-
-    with col2:
-        st.subheader("2. Visualização")
-        
-        lista_livre_escrita = ["OUTROS", "RECLAME AQUI", "INFORMAÇÃO SOBRE COLETA", "INFORMAÇÃO SOBRE ENTREGA", "INFORMAÇÃO SOBRE O PRODUTO", "INFORMAÇÃO SOBRE O REEMBOLSO"]
-        
-        if opcao in lista_livre_escrita:
-            label_texto = "Digite a mensagem personalizada:"
-            if opcao == "RECLAME AQUI": label_texto = "Digite a resposta do Reclame Aqui:"
-            elif "INFORMAÇÃO" in opcao: label_texto = f"Detalhes sobre {opcao}:"
-            texto_base = st.text_area(label_texto, height=200)
-            if texto_base: texto_base += f"\n\nEquipe de atendimento Engage Eletro.\n{{colaborador}}"
-        else:
-            texto_base = modelos_sac.get(opcao, "")
-
-        nome_cliente_str = nome_cliente if nome_cliente else "(Nome do cliente)"
-        texto_base = texto_base.replace("(Nome do cliente)", nome_cliente_str)
-        if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
-        
-        excecoes_nf = ["SAUDAÇÃO", "AGRADECIMENTO", "AGRADECIMENTO 2", "PRÉ-VENDA", "BARRAR ENTREGA NA TRANSPORTADORA", "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)", "ESTOQUE FALTANTE", "COMPROVANTE DE ENTREGA (MARTINS)", "PEDIDO AMAZON FBA", "BAIXA ERRÔNEA", "COBRANÇA INDEVIDA", "INFORMAÇÃO EMBALAGEM"] + lista_livre_escrita
-        scripts_martins = ["CANCELAMENTO MARTINS (FRETE)", "CANCELAMENTO MARTINS (ESTOQUE)", "CANCELAMENTO MARTINS (PREÇO)"]
-        
-        if opcao not in excecoes_nf and opcao not in scripts_martins:
-            ped_str = numero_pedido if numero_pedido else "..."
-            frase_pedido = f"O atendimento é referente ao seu pedido de número {ped_str}..."
-            if "\n" in texto_base:
-                partes = texto_base.split("\n", 1)
-                texto_final = f"{partes[0]}\n\n{frase_pedido}\n{partes[1]}"
-            else:
-                texto_final = f"{frase_pedido}\n\n{texto_base}"
-        elif opcao == "BARRAR ENTREGA NA TRANSPORTADORA":
-             raw_text = modelos_sac["BARRAR ENTREGA NA TRANSPORTADORA"]
-             corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
-             ped_str = numero_pedido if numero_pedido else "......"
-             texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
-        elif opcao == "ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)":
-             raw_text = modelos_sac["ALTERAÇÃO DE ENDEREÇO (SOLICITAÇÃO DE DADOS)"]
-             corpo_mensagem = raw_text.replace("Olá, (Nome do cliente)!", "").strip()
-             ped_str = numero_pedido if numero_pedido else "......"
-             texto_final = f"Olá, {nome_cliente_str}!\nO atendimento é referente ao seu pedido de número {ped_str}\n\n{corpo_mensagem}"
-        elif opcao == "ESTOQUE FALTANTE":
-             texto_final = texto_base.replace("{portal}", str(portal))
-        elif opcao == "COMPROVANTE DE ENTREGA (MARTINS)":
-             texto_final = ""
-        elif opcao in scripts_martins:
-            texto_final = texto_base.replace("{nome_cliente}", nome_cliente_str)
-        else:
-            texto_final = texto_base
-
-        assinatura_nome = colab if "AMAZON" not in portal else ""
-        texto_final = texto_final.replace("{colaborador}", assinatura_nome)
-        
-        for chave, valor in dados.items():
-            substituto = valor if valor else "................"
-            texto_final = texto_final.replace(chave, substituto)
-        
-        st.markdown(f'<div class="preview-box">{texto_final}</div>', unsafe_allow_html=True)
-        st.write("")
-        st.markdown('<div class="botao-registrar">', unsafe_allow_html=True)
-        
-        st.button("✅ Registrar e Copiar", key="btn_save_sac", on_click=registrar_e_limpar, args=("SAC", texto_final))
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        if 'texto_persistente_s' in st.session_state:
-            st.markdown("---")
-            st.info("📝 Último texto registrado (Cópia Segura):")
-            st.code(st.session_state['texto_persistente_s'], language="text")
-            copiar_para_clipboard(st.session_state['texto_persistente_s'])
+        st.info("📝 Último texto registrado (Cópia Segura):")
+        st.code(st.session_state['texto_persistente_s'], language="text")
+        copiar_para_clipboard(st.session_state['texto_persistente_s'])
 
 # ==========================================
 #           DASHBOARD
@@ -639,6 +653,7 @@ def pagina_dashboard():
 
         st.markdown("---")
         st.subheader("📥 Exportação Geral")
+        # Correção aplicada: variável gerada antes do botão
         csv_dados = converter_para_excel_csv(df_f)
         st.download_button(label="Baixar CSV", data=csv_dados, file_name="relatorio_engage.csv", mime='text/csv')
         
@@ -648,6 +663,12 @@ def pagina_dashboard():
     except Exception as e:
         st.error(f"Erro no Dashboard: {e}")
 
-if pagina_escolhida == "Pendências Logísticas": pagina_pendencias()
-elif pagina_escolhida == "SAC / Atendimento": pagina_sac()
-else: pagina_dashboard()
+# ==========================================
+#      EXECUÇÃO DO MENU (NO FINAL)
+# ==========================================
+if pagina_escolhida == "Pendências Logísticas":
+    pagina_pendencias()
+elif pagina_escolhida == "SAC / Atendimento":
+    pagina_sac()
+else:
+    pagina_dashboard()
