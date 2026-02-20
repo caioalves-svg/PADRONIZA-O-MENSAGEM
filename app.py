@@ -145,7 +145,7 @@ lista_motivo_crm = sorted(["ACAREAÇÃO", "ACORDO CLIENTE", "ALTERAÇÃO DE NOTA
 # ==========================================
 modelos_pendencias = {
     "ATENDIMENTO DIGISAC": "", "2° TENTATIVA DE CONTATO": "", "3° TENTATIVA DE CONTATO": "","CANCELAMENTO SOLICITADO": "", "ENTREGUE": "", "CANCELADO": "",
-    "REENTREGA": "", "AGUARDANDO TRANSPORTADORA": "",
+    "REENTREGA": "", "AGUARDANDO TRANSPORTADORA": "", "NÃO ENTROU NA UNIDADE": "",
     "ACAREAÇÃO": """Olá, (Nome do cliente)! Tudo bem?\n\nIdentificamos uma divergência na entrega do seu pedido e, por isso, abrimos um chamado de acareação com a transportadora.\n\nNeste procedimento, o motorista retorna ao local para identificar quem recebeu a mercadoria e validar as informações fornecidas. O prazo para a conclusão desta análise é de até 7 dias úteis.\n\nAssim que tivermos o parecer final, entraremos em contato imediatamente com a resolução.\n\nAtenciosamente,\n{colaborador}""",
     "DEVOLUÇÃO INDEVIDA": """Olá, (Nome do cliente)! Tudo bem?\n\nLamentamos informar que o seu pedido retornou indevidamente ao nosso centro de distribuição por um erro operacional.\n\nPara resolvermos da melhor forma para você, como prefere seguir?\n\nReenvio: Geramos um novo envio prioritário da sua mercadoria.\nCancelamento: Realizamos o estorno integral do valor pago.\n\nPedimos sinceras desculpas pelo transtorno. Ficamos no aguardo da sua escolha para prosseguir.\n\nAtenciosamente,\n{colaborador}""",
     "SOLICITAÇÃO DE CONTATO": """Olá, (Nome do cliente)! Tudo bem?\n\nQueremos garantir que sua mercadoria chegue com agilidade e sem novos desencontros.\n\nPor gentileza, você poderia nos informar um número de telefone atualizado (com DDD)? Assim, podemos alinhar os detalhes diretamente com a transportadora e facilitar o acesso ao seu endereço.\n\nAguardamos seu retorno!\n\nAtenciosamente,\n{colaborador}""",
@@ -245,7 +245,7 @@ lista_motivos_contato = sorted([k for k in modelos_sac.keys() if k != "OUTROS"])
 lista_motivos_contato.append("OUTROS")
 
 # ==========================================
-#           CALLBACKS (LÓGICA SEGURA)
+#            CALLBACKS (LÓGICA SEGURA)
 # ==========================================
 def registrar_e_limpar(setor, texto_pronto):
     # Salva o texto pronto na memória persistente ANTES de limpar os campos
@@ -286,7 +286,7 @@ def registrar_e_limpar(setor, texto_pronto):
                 st.session_state[campo] = ""
 
 # ==========================================
-#           PÁGINA PENDÊNCIAS
+#            PÁGINA PENDÊNCIAS
 # ==========================================
 def pagina_pendencias():
     if st.session_state.get('sucesso_recente_p'):
@@ -339,7 +339,7 @@ def pagina_pendencias():
         texto_base = texto_cru.replace("{transportadora}", str(transp)).replace("{colaborador}", assinatura_nome).replace("{nome_cliente}", nome_cliente_str).replace("(Nome do cliente)", nome_cliente_str)
         if portal in ["CNOVA", "CNOVA - EXTREMA", "PONTO", "CASAS BAHIA"]: texto_base = texto_base.replace(f"Olá, {nome_cliente_str}", f"Olá, {nome_cliente_str}!")
         
-        motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO", "REENTREGA", "AGUARDANDO TRANSPORTADORA"]
+        motivos_sem_texto = ["ATENDIMENTO DIGISAC", "2° TENTATIVA DE CONTATO", "3° TENTATIVA DE CONTATO", "REENTREGA", "AGUARDANDO TRANSPORTADORA", "NÃO ENTROU NA UNIDADE"]
         
         if opcao not in motivos_sem_texto:
             ped_str = numero_pedido if numero_pedido else "..."
@@ -403,7 +403,7 @@ def pagina_pendencias():
                 st.toast("Devolução registrada com sucesso!", icon="✅")
 
 # ==========================================
-#           PÁGINA SAC
+#            PÁGINA SAC
 # ==========================================
 def pagina_sac():
     if st.session_state.get('sucesso_recente_s'):
@@ -581,7 +581,7 @@ def pagina_sac():
         copiar_para_clipboard(st.session_state['texto_persistente_s'])
 
 # ==========================================
-#           DASHBOARD
+#            DASHBOARD
 # ==========================================
 def pagina_dashboard():
     st.title("📊 Dashboard Gerencial")
