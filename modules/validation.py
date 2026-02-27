@@ -19,7 +19,6 @@ CAMPOS_CONDICIONAIS_SAC: dict[str, list[str]] = {
     "PEDIDO CANCELADO (ENTREGUE)": ["data_entrega"],
     "CÓDIGO POSTAL (LOGÍSTICA REVERSA)": ["codigo_postagem"],
     "CÓDIGO COLETA DOMICILIAR": ["codigo_coleta"],
-    "INSUCESSO NA ENTREGA (SOLICITAR DADOS)": ["rua", "cep", "numero", "bairro", "cidade", "estado"],
     "FISCALIZAÇÃO": ["transportadora"],
 }
 
