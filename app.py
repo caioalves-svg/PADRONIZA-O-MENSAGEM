@@ -12,6 +12,7 @@ if os.path.exists("style.css"):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 from modules.auth import verificar_autenticacao
+from modules.home import pagina_home
 from modules.pendencias import pagina_pendencias
 from modules.sac import pagina_sac
 from modules.cobranca import pagina_cobranca
@@ -36,6 +37,7 @@ st.sidebar.caption("MENU PRINCIPAL")
 pagina = st.sidebar.radio(
     "Navega\u00e7\u00e3o:",
     (
+        "\U0001f3e0 In\u00edcio",
         "Pend\u00eancias Log\u00edsticas",
         "SAC / Atendimento",
         "\U0001f4b0 Cobran\u00e7a",
@@ -44,13 +46,15 @@ pagina = st.sidebar.radio(
     ),
     label_visibility="collapsed",
 )
-st.sidebar.markdown("---")
 
-if st.sidebar.button("\U0001f6aa Sair"):
+st.sidebar.markdown("---")
+if st.sidebar.button("\U0001f6aa Sair", use_container_width=True):
     st.session_state.clear()
     st.rerun()
 
-if pagina == "Pend\u00eancias Log\u00edsticas":
+if pagina == "\U0001f3e0 In\u00edcio":
+    pagina_home()
+elif pagina == "Pend\u00eancias Log\u00edsticas":
     pagina_pendencias()
 elif pagina == "SAC / Atendimento":
     pagina_sac()

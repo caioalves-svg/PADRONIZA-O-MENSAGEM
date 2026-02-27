@@ -141,13 +141,12 @@ def pagina_dashboard():
     df["Hora_Int"] = pd.to_datetime(df["Hora"], format="%H:%M:%S", errors="coerce").dt.hour
 
     # ── KPIs ──────────────────────────────────────────────────────────────────
-    total      = len(df)
-    sac        = len(df[df["Setor"] == "SAC"])
-    pend       = len(df[df["Setor"] == "Pendência"])
-    taxa_sac   = f"{sac / total * 100:.1f}%" if total else "0%"
-    top_portal = df["Portal"].mode()[0] if "Portal" in df and not df.empty else "-"
+    total    = len(df)
+    sac      = len(df[df["Setor"] == "SAC"])
+    pend     = len(df[df["Setor"] == "Pendência"])
+    taxa_sac = f"{sac / total * 100:.1f}%" if total else "0%"
 
-    k1, k2, k3, k4, k5 = st.columns(5)
+    k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(_card_html("📋", str(total), "Total de Atendimentos",
             "linear-gradient(135deg,#1e40af,#2563eb)"), unsafe_allow_html=True)
@@ -158,9 +157,6 @@ def pagina_dashboard():
         st.markdown(_card_html("🚚", str(pend), "Pendências",
             "linear-gradient(135deg,#6d28d9,#7c3aed)"), unsafe_allow_html=True)
     with k4:
-        st.markdown(_card_html("🛒", top_portal, "Portal Mais Ativo",
-            "linear-gradient(135deg,#b45309,#f59e0b)"), unsafe_allow_html=True)
-    with k5:
         st.markdown(_card_html("📊", taxa_sac, "Taxa SAC / Total",
             "linear-gradient(135deg,#065f46,#059669)"), unsafe_allow_html=True)
 
@@ -319,66 +315,27 @@ def pagina_dashboard():
     )
     st.plotly_chart(fig4, use_container_width=True)
 
-    # ── Gráficos lado a lado 2 ────────────────────────────────────────────────
-    col_c, col_d = st.columns(2)
-
-    with col_c:
-        _secao("📂 Top Motivos CRM")
-        df_crm = df[df["Motivo_CRM"].notna() & (df["Motivo_CRM"] != "-")]
-        if not df_crm.empty:
-            crm = df_crm["Motivo_CRM"].value_counts().head(12).reset_index()
-            crm.columns = ["Motivo", "Qtd"]
-            fig5 = px.bar(
-                crm, x="Qtd", y="Motivo", orientation="h", text="Qtd",
-                color="Qtd",
-                color_continuous_scale=["#fde68a", "#f59e0b"],
-            )
-            fig5.update_traces(textposition="outside")
-            fig5.update_layout(
-                height=max(380, len(crm) * 38),
-                yaxis={"categoryorder": "total ascending"},
-                coloraxis_showscale=False,
-                **_CHART_LAYOUT,
-            )
-            st.plotly_chart(fig5, use_container_width=True)
-        else:
-            st.info("Sem dados de CRM no período.")
-
-    with col_d:
-        _secao("⏰ Picos de Demanda por Hora")
-        total_sec = df.groupby("Setor").size().reset_index(name="Total_Setor")
-        heat      = df.groupby(["Hora_Int", "Setor"]).size().reset_index(name="Atendimentos")
-        heat      = pd.merge(heat, total_sec, on="Setor")
-        heat["Pct"] = (heat["Atendimentos"] / heat["Total_Setor"]) * 100
-        fig2 = px.line(
-            heat, x="Hora_Int", y="Pct", color="Setor", markers=True,
-            labels={"Hora_Int": "Hora", "Pct": "% do setor"},
-            color_discrete_map={"Pendência": COR_PEND, "SAC": COR_SAC},
+    # ── Top Motivos CRM ───────────────────────────────────────────────────────
+    _secao("📂 Top Motivos CRM")
+    df_crm = df[df["Motivo_CRM"].notna() & (df["Motivo_CRM"] != "-")]
+    if not df_crm.empty:
+        crm = df_crm["Motivo_CRM"].value_counts().head(12).reset_index()
+        crm.columns = ["Motivo", "Qtd"]
+        fig5 = px.bar(
+            crm, x="Qtd", y="Motivo", orientation="h", text="Qtd",
+            color="Qtd",
+            color_continuous_scale=["#fde68a", "#f59e0b"],
         )
-        fig2.update_traces(line=dict(width=2.5))
-        fig2.update_layout(
-            xaxis=dict(tickmode="linear", dtick=1, gridcolor="#e2e8f0"),
-            yaxis=dict(ticksuffix="%", gridcolor="#e2e8f0"),
+        fig5.update_traces(textposition="outside")
+        fig5.update_layout(
+            height=max(380, len(crm) * 38),
+            yaxis={"categoryorder": "total ascending"},
+            coloraxis_showscale=False,
             **_CHART_LAYOUT,
         )
-        st.plotly_chart(fig2, use_container_width=True)
-
-    # ── Motivos por setor ─────────────────────────────────────────────────────
-    _secao("📊 Top Motivos CRM por Setor")
-    df_mot = df[df["Motivo_CRM"].notna() & (df["Motivo_CRM"] != "-")]
-    if not df_mot.empty:
-        top10   = df_mot["Motivo_CRM"].value_counts().head(10).index.tolist()
-        mot_set = df_mot[df_mot["Motivo_CRM"].isin(top10)].groupby(["Motivo_CRM", "Setor"]).size().reset_index(name="Qtd")
-        fig7 = px.bar(
-            mot_set, x="Motivo_CRM", y="Qtd", color="Setor", barmode="stack",
-            color_discrete_map={"Pendência": COR_PEND, "SAC": COR_SAC},
-            text="Qtd",
-        )
-        fig7.update_traces(textposition="inside")
-        fig7.update_xaxes(tickangle=-28, gridcolor="#e2e8f0")
-        fig7.update_yaxes(gridcolor="#e2e8f0")
-        fig7.update_layout(**_CHART_LAYOUT)
-        st.plotly_chart(fig7, use_container_width=True)
+        st.plotly_chart(fig5, use_container_width=True)
+    else:
+        st.info("Sem dados de CRM no período.")
 
     # ── Exportação ────────────────────────────────────────────────────────────
     _secao("📥 Exportação de Dados")
