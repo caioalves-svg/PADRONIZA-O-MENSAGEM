@@ -49,16 +49,6 @@ CAMPOS_EXTRAS: dict[str, list[tuple]] = {
     "FISCALIZA\u00c7\u00c3O": [
         ("Transportadora:", "tr_fisc_sac", "select_transp", "transportadora"),
     ],
-    "INSUCESSO NA ENTREGA (SOLICITAR DADOS)": [
-        ("Rua:", "rua_ins", "text", "rua"),
-        ("CEP:", "cep_ins", "text", "cep"),
-        ("N\u00famero:", "num_ins", "text", "numero"),
-        ("Bairro:", "bair_ins", "text", "bairro"),
-        ("Cidade:", "cid_ins", "text", "cidade"),
-        ("Estado:", "uf_ins", "text", "estado"),
-        ("Complemento (opcional):", "comp_ins", "text", "complemento"),
-        ("Ponto de Refer\u00eancia (opcional):", "ref_ins", "text", "referencia"),
-    ],
     "ENTREGA RECUSADA": [
         ("Data/Hor\u00e1rio limite:", "data_limite_recusa", "text", "data_limite"),
     ],
