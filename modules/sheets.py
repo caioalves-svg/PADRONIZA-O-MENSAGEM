@@ -1,5 +1,6 @@
 import time
 import os
+import uuid
 
 import gspread
 import pandas as pd
@@ -109,7 +110,15 @@ def carregar_dados_dashboard() -> pd.DataFrame:
 COLUNAS_PROBLEMAS = [
     "Data", "Hora", "Colaborador", "Area", "Descricao",
     "Recorrente", "Gravidade", "Causa", "Sugestao", "Referencia",
+    "ID", "Status", "Prioridade", "Titulo", "Tags", "Responsavel",
+    "TipoSolucao", "AcaoTomada", "DocumentoGerado",
 ]
+
+# Índices 1-based das colunas de gestão (para gspread)
+_COL_MAP_PROBLEMAS = {
+    "ID": 11, "Status": 12, "Prioridade": 13, "Titulo": 14, "Tags": 15,
+    "Responsavel": 16, "TipoSolucao": 17, "AcaoTomada": 18, "DocumentoGerado": 19,
+}
 
 
 @st.cache_resource(ttl=300, show_spinner=False)
@@ -126,9 +135,13 @@ def _conectar_problemas() -> gspread.Worksheet | None:
 
         planilha = client.open(NOME_PLANILHA)
         try:
-            return planilha.worksheet("Problemas_Relatados")
+            ws = planilha.worksheet("Problemas_Relatados")
+            # Migração de schema: atualiza cabeçalho se necessário
+            if ws.row_values(1) != COLUNAS_PROBLEMAS:
+                ws.update("A1", [COLUNAS_PROBLEMAS])
+            return ws
         except gspread.WorksheetNotFound:
-            ws = planilha.add_worksheet(title="Problemas_Relatados", rows=1000, cols=20)
+            ws = planilha.add_worksheet(title="Problemas_Relatados", rows=1000, cols=25)
             ws.append_row(COLUNAS_PROBLEMAS)
             return ws
     except Exception:
@@ -149,6 +162,15 @@ def salvar_problema(dados: dict) -> bool:
         dados.get("causa", ""),
         dados.get("sugestao", ""),
         dados.get("referencia", ""),
+        uuid.uuid4().hex[:8].upper(),  # ID único
+        "Pendente",   # Status inicial
+        "",           # Prioridade
+        "",           # Titulo
+        "",           # Tags
+        "",           # Responsavel
+        "",           # TipoSolucao
+        "",           # AcaoTomada
+        "",           # DocumentoGerado
     ]
     for tentativa in range(3):
         try:
@@ -156,6 +178,37 @@ def salvar_problema(dados: dict) -> bool:
             if sheet is None:
                 return False
             sheet.append_row(linha)
+            carregar_problemas.clear()
+            return True
+        except Exception:
+            if tentativa < 2:
+                time.sleep(0.5 * (2 ** tentativa))
+    return False
+
+
+def atualizar_problema(problema_id: str, campos: dict) -> bool:
+    """Atualiza campos de gestão de um problema pelo seu ID."""
+    for tentativa in range(3):
+        try:
+            sheet = _conectar_problemas()
+            if sheet is None:
+                return False
+            # Localiza linha pelo ID (coluna 11)
+            ids = sheet.col_values(_COL_MAP_PROBLEMAS["ID"])
+            if problema_id not in ids:
+                return False
+            row_num = ids.index(problema_id) + 1  # 1-based
+
+            # Monta batch de atualizações
+            batch = []
+            for campo, valor in campos.items():
+                col = _COL_MAP_PROBLEMAS.get(campo)
+                if col is not None:
+                    col_letra = chr(64 + col)  # colunas 11-19 → K-S (dentro de A-Z)
+                    batch.append({"range": f"{col_letra}{row_num}", "values": [[str(valor)]]})
+
+            if batch:
+                sheet.batch_update(batch)
             carregar_problemas.clear()
             return True
         except Exception:

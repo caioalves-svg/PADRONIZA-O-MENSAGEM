@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import streamlit as st
 
@@ -159,6 +159,44 @@ def pagina_home():
             st.caption("Sem dados disponíveis no momento.")
     except Exception:
         st.caption("Sem dados disponíveis no momento.")
+
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
+
+    # ── Quadro de tarefas em andamento ────────────────────────────────────────
+    _secao("📌 Quadro de Tarefas")
+    try:
+        df_prob = carregar_problemas()
+        if not df_prob.empty and "Status" in df_prob.columns:
+            df_ativos = df_prob[df_prob["Status"].isin(["Em Análise", "Em Observação"])].copy()
+            if df_ativos.empty:
+                st.success("✅ Nenhuma tarefa em aberto no momento!")
+            else:
+                def _dias(d):
+                    try:
+                        return (date.today() - datetime.strptime(d, "%d/%m/%Y").date()).days
+                    except Exception:
+                        return 0
+
+                if "Data" in df_ativos.columns:
+                    df_ativos["Dias em aberto"] = df_ativos["Data"].apply(_dias)
+
+                df_ativos["Assunto"] = df_ativos.apply(
+                    lambda r: str(r.get("Titulo", "")).strip() or (str(r.get("Descricao", ""))[:65] + "…"),
+                    axis=1,
+                )
+
+                sort_cols = [c for c in ["Responsavel", "Dias em aberto"] if c in df_ativos.columns]
+                if sort_cols:
+                    df_ativos = df_ativos.sort_values(sort_cols, ascending=[True, False])
+
+                cols_q = [c for c in ["Assunto", "Area", "Responsavel", "Status", "Prioridade", "Dias em aberto"]
+                          if c in df_ativos.columns]
+                st.caption(f"{len(df_ativos)} tarefa(s) em andamento — acesse **Diário de Problemas** para detalhes")
+                st.dataframe(df_ativos[cols_q], use_container_width=True, hide_index=True)
+        else:
+            st.caption("Sem tarefas em andamento no momento.")
+    except Exception:
+        st.caption("Não foi possível carregar o quadro de tarefas.")
 
     st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
