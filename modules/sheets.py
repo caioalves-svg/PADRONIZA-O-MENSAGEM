@@ -102,3 +102,78 @@ def carregar_dados_dashboard() -> pd.DataFrame:
         return pd.DataFrame(columns=COLUNAS)
     except Exception:
         return pd.DataFrame()
+
+
+# ── Diário de Problemas ───────────────────────────────────────────────────────
+
+COLUNAS_PROBLEMAS = [
+    "Data", "Hora", "Colaborador", "Area", "Descricao",
+    "Recorrente", "Gravidade", "Causa", "Sugestao", "Referencia",
+]
+
+
+@st.cache_resource(ttl=300, show_spinner=False)
+def _conectar_problemas() -> gspread.Worksheet | None:
+    """Conecta à aba 'Problemas_Relatados'. Cria a aba automaticamente se não existir."""
+    try:
+        creds = _build_creds()
+        if creds:
+            client = gspread.service_account_from_dict(creds)
+        elif os.path.exists("credentials.json"):
+            client = gspread.service_account(filename="credentials.json")
+        else:
+            return None
+
+        planilha = client.open(NOME_PLANILHA)
+        try:
+            return planilha.worksheet("Problemas_Relatados")
+        except gspread.WorksheetNotFound:
+            ws = planilha.add_worksheet(title="Problemas_Relatados", rows=1000, cols=20)
+            ws.append_row(COLUNAS_PROBLEMAS)
+            return ws
+    except Exception:
+        return None
+
+
+def salvar_problema(dados: dict) -> bool:
+    """Grava uma linha na aba Problemas_Relatados com 3 tentativas e backoff exponencial."""
+    agora = _obter_data_hora_brasil()
+    linha = [
+        agora.strftime("%d/%m/%Y"),
+        agora.strftime("%H:%M:%S"),
+        dados.get("colaborador", ""),
+        dados.get("area", ""),
+        dados.get("descricao", ""),
+        dados.get("recorrente", ""),
+        dados.get("gravidade", ""),
+        dados.get("causa", ""),
+        dados.get("sugestao", ""),
+        dados.get("referencia", ""),
+    ]
+    for tentativa in range(3):
+        try:
+            sheet = _conectar_problemas()
+            if sheet is None:
+                return False
+            sheet.append_row(linha)
+            carregar_problemas.clear()
+            return True
+        except Exception:
+            if tentativa < 2:
+                time.sleep(0.5 * (2 ** tentativa))
+    return False
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def carregar_problemas() -> pd.DataFrame:
+    """Retorna todos os registros de problemas como DataFrame (cache 60s)."""
+    sheet = _conectar_problemas()
+    if sheet is None:
+        return pd.DataFrame()
+    try:
+        registros = sheet.get_all_records()
+        if registros:
+            return pd.DataFrame(registros)
+        return pd.DataFrame(columns=COLUNAS_PROBLEMAS)
+    except Exception:
+        return pd.DataFrame()

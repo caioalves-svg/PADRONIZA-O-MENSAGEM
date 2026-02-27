@@ -16,6 +16,7 @@ from modules.pendencias import pagina_pendencias
 from modules.sac import pagina_sac
 from modules.cobranca import pagina_cobranca
 from modules.dashboard import pagina_dashboard
+from modules.problemas import pagina_problemas
 
 if not verificar_autenticacao():
     st.stop()
@@ -25,12 +26,22 @@ _usuario = st.session_state.get("usuario_logado", "")
 if os.path.exists("logo.png"):
     st.sidebar.image("logo.png", use_container_width=True)
 
-st.sidebar.markdown(f"<p style='margin:0.5rem 0 0.1rem;font-weight:700;color:#1e293b'>\U0001f464 {_usuario}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(
+    f"<p style='margin:0.5rem 0 0.1rem;font-weight:700;color:#1e293b'>"
+    f"\U0001f464 {_usuario}</p>",
+    unsafe_allow_html=True,
+)
 st.sidebar.caption("MENU PRINCIPAL")
 
 pagina = st.sidebar.radio(
     "Navega\u00e7\u00e3o:",
-    ("Pend\u00eancias Log\u00edsticas", "SAC / Atendimento", "\U0001f4b0 Cobran\u00e7a", "\U0001f4ca Dashboard Gerencial"),
+    (
+        "Pend\u00eancias Log\u00edsticas",
+        "SAC / Atendimento",
+        "\U0001f4b0 Cobran\u00e7a",
+        "\U0001f4ca Dashboard Gerencial",
+        "\U0001f4cb Di\u00e1rio de Problemas",
+    ),
     label_visibility="collapsed",
 )
 st.sidebar.markdown("---")
@@ -45,5 +56,7 @@ elif pagina == "SAC / Atendimento":
     pagina_sac()
 elif pagina == "\U0001f4b0 Cobran\u00e7a":
     pagina_cobranca()
+elif pagina == "\U0001f4cb Di\u00e1rio de Problemas":
+    pagina_problemas()
 else:
     pagina_dashboard()
