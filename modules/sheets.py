@@ -108,16 +108,20 @@ def carregar_dados_dashboard() -> pd.DataFrame:
 # ── Diário de Problemas ───────────────────────────────────────────────────────
 
 COLUNAS_PROBLEMAS = [
-    "Data", "Hora", "Colaborador", "Area", "Descricao",
+    "Data", "Hora", "Colaborador", "Area", "Descricao", "Impacto",
     "Recorrente", "Gravidade", "Causa", "Sugestao", "Referencia",
     "ID", "Status", "Prioridade", "Titulo", "Tags", "Responsavel",
     "TipoSolucao", "AcaoTomada", "DocumentoGerado",
 ]
 
-# Índices 1-based das colunas de gestão (para gspread)
+# Índices 1-based (para gspread) — campos originais e de gestão
 _COL_MAP_PROBLEMAS = {
-    "ID": 11, "Status": 12, "Prioridade": 13, "Titulo": 14, "Tags": 15,
-    "Responsavel": 16, "TipoSolucao": 17, "AcaoTomada": 18, "DocumentoGerado": 19,
+    # Campos originais (editáveis pelo autor enquanto Pendente)
+    "Area": 4, "Descricao": 5, "Impacto": 6, "Recorrente": 7,
+    "Gravidade": 8, "Causa": 9, "Sugestao": 10, "Referencia": 11,
+    # Campos de gestão (editáveis pela gestora)
+    "ID": 12, "Status": 13, "Prioridade": 14, "Titulo": 15, "Tags": 16,
+    "Responsavel": 17, "TipoSolucao": 18, "AcaoTomada": 19, "DocumentoGerado": 20,
 }
 
 
@@ -157,6 +161,7 @@ def salvar_problema(dados: dict) -> bool:
         dados.get("colaborador", ""),
         dados.get("area", ""),
         dados.get("descricao", ""),
+        dados.get("impacto", ""),
         dados.get("recorrente", ""),
         dados.get("gravidade", ""),
         dados.get("causa", ""),
