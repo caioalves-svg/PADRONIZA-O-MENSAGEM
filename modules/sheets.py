@@ -110,7 +110,8 @@ def carregar_dados_dashboard() -> pd.DataFrame:
 COLUNAS_PROBLEMAS = [
     "Data", "Hora", "Colaborador", "Area", "Descricao", "Impacto",
     "Recorrente", "Gravidade", "Causa", "Sugestao", "Referencia",
-    "ID", "Status", "Prioridade", "Titulo", "Tags", "Responsavel",
+    "ID", "Status", "Prioridade", "Titulo", "Tags",
+    "Responsavel", "ResponsavelTratativa",
     "TipoSolucao", "AcaoTomada", "DocumentoGerado",
 ]
 
@@ -121,7 +122,8 @@ _COL_MAP_PROBLEMAS = {
     "Gravidade": 8, "Causa": 9, "Sugestao": 10, "Referencia": 11,
     # Campos de gestão (editáveis pela gestora)
     "ID": 12, "Status": 13, "Prioridade": 14, "Titulo": 15, "Tags": 16,
-    "Responsavel": 17, "TipoSolucao": 18, "AcaoTomada": 19, "DocumentoGerado": 20,
+    "Responsavel": 17, "ResponsavelTratativa": 18,
+    "TipoSolucao": 19, "AcaoTomada": 20, "DocumentoGerado": 21,
 }
 
 
@@ -173,6 +175,7 @@ def salvar_problema(dados: dict) -> bool:
         "",           # Titulo
         "",           # Tags
         "",           # Responsavel
+        "",           # ResponsavelTratativa
         "",           # TipoSolucao
         "",           # AcaoTomada
         "",           # DocumentoGerado

@@ -88,12 +88,21 @@ def _dias_aberto(data_str: str) -> int:
 # ── Card: Quadro Público ──────────────────────────────────────────────────────
 
 def _card_quadro(row, dias: int) -> str:
-    status = str(row.get("Status", ""))
-    prio   = str(row.get("Prioridade", ""))
-    titulo = str(row.get("Titulo", "")).strip() or str(row.get("Descricao", ""))[:70]
-    area   = str(row.get("Area", ""))
-    resp   = str(row.get("Responsavel", "")).strip() or "Não atribuído"
-    tags   = [t.strip() for t in str(row.get("Tags", "")).split(";") if t.strip()]
+    status    = str(row.get("Status", ""))
+    prio      = str(row.get("Prioridade", ""))
+    titulo    = str(row.get("Titulo", "")).strip() or str(row.get("Descricao", ""))[:70]
+    area      = str(row.get("Area", ""))
+    resp_ana  = str(row.get("Responsavel", "")).strip()
+    resp_trat = str(row.get("ResponsavelTratativa", "")).strip()
+    tags      = [t.strip() for t in str(row.get("Tags", "")).split(";") if t.strip()]
+
+    # Linha de responsáveis
+    if resp_trat:
+        resp = f"Análise: {resp_ana or '—'} &nbsp;·&nbsp; Tratativa: {resp_trat}"
+    elif resp_ana:
+        resp = f"Análise: {resp_ana}"
+    else:
+        resp = "Não atribuído"
 
     cor_s, bg_s = _COR_STATUS.get(status, ("#64748b", "#f8fafc"))
     cor_p       = _COR_PRIO.get(prio, "")
@@ -517,9 +526,19 @@ def _form_gestao(row, responsaveis: list, prefix: str):
             resp_val = str(row.get("Responsavel", ""))
             idx_resp = responsaveis.index(resp_val) if resp_val in responsaveis else 0
             novo_resp = st.selectbox(
-                "Responsável pela análise", responsaveis, index=idx_resp,
+                "Responsável pela Análise",
+                responsaveis,
+                index=idx_resp,
                 format_func=lambda x: x if x else "— Não atribuído —",
+                help="Quem vai acompanhar, cobrar evolução e prestar contas sobre este problema.",
             )
+
+        novo_resp_trat = st.text_input(
+            "Responsável pela Tratativa",
+            value=str(row.get("ResponsavelTratativa", "")),
+            placeholder="Ex.: Equipe Transportadora / Fulano / Setor de TI",
+            help="Quem vai atuar diretamente na resolução — pode ser uma pessoa, setor ou empresa externa.",
+        )
 
         tags_atuais = [t.strip() for t in str(row.get("Tags", "")).split(";") if t.strip() and t.strip() in TAGS]
         novas_tags = st.multiselect(
@@ -548,14 +567,15 @@ def _form_gestao(row, responsaveis: list, prefix: str):
 
     if salvo:
         campos = {
-            "Titulo":          novo_titulo,
-            "Status":          novo_status,
-            "Prioridade":      nova_prioridade,
-            "Responsavel":     novo_resp,
-            "Tags":            "; ".join(novas_tags),
-            "TipoSolucao":     novo_tipo,
-            "AcaoTomada":      nova_acao,
-            "DocumentoGerado": "TRUE" if doc_gerado else "FALSE",
+            "Titulo":                 novo_titulo,
+            "Status":                 novo_status,
+            "Prioridade":             nova_prioridade,
+            "Responsavel":            novo_resp,
+            "ResponsavelTratativa":   novo_resp_trat,
+            "Tags":                   "; ".join(novas_tags),
+            "TipoSolucao":            novo_tipo,
+            "AcaoTomada":             nova_acao,
+            "DocumentoGerado":        "TRUE" if doc_gerado else "FALSE",
         }
         ok = atualizar_problema(problema_id, campos)
         if ok:
