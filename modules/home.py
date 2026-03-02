@@ -9,9 +9,46 @@ from modules.sheets import carregar_dados_dashboard, carregar_problemas
 # Mude novidade=True APENAS na versão mais recente.
 VERSOES = [
     {
+        "versao": "v1.3",
+        "data": "02/03/2026",
+        "novidade": True,
+        "features": [
+            {
+                "icone": "🛠️",
+                "nome": "Gestão de Problemas",
+                "cor": "linear-gradient(135deg,#6d28d9,#7c3aed)",
+                "o_que_e": (
+                    "Camada de gestão completa para o Diário de Problemas: "
+                    "cada registro ganha um ID único, status de acompanhamento, "
+                    "prioridade, responsável e tipo de solução."
+                ),
+                "como_usar": (
+                    "A gestora acessa a aba 🛠️ Gestão no Diário de Problemas "
+                    "e faz a triagem dos problemas pendentes — definindo título, "
+                    "responsável, tags e ação tomada. Todos podem acompanhar "
+                    "no Quadro Público."
+                ),
+            },
+            {
+                "icone": "📌",
+                "nome": "Quadro de Tarefas",
+                "cor": "linear-gradient(135deg,#0369a1,#0ea5e9)",
+                "o_que_e": (
+                    "Painel de accountability exibido na página inicial e no Diário "
+                    "de Problemas, mostrando todas as tarefas em andamento com "
+                    "responsável e dias em aberto."
+                ),
+                "como_usar": (
+                    "Basta olhar a seção 📌 Quadro de Tarefas na tela inicial. "
+                    "Para detalhes, acesse Diário de Problemas → Quadro Público."
+                ),
+            },
+        ],
+    },
+    {
         "versao": "v1.2",
         "data": "27/02/2026",
-        "novidade": True,
+        "novidade": False,
         "features": [
             {
                 "icone": "📋",

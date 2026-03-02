@@ -247,10 +247,15 @@ def pagina_pendencias():
 
     elif tipo_fluxo == "Atraso":
         st.subheader("Registro de Atraso")
+        usuario_atraso = st.session_state.get("usuario_logado", "")
         with st.form("form_atraso", clear_on_submit=True):
             c1, c2 = st.columns(2)
             with c1:
-                colab  = st.selectbox("\U0001f464 Colaborador:", colabs)
+                if usuario_atraso:
+                    st.selectbox("\U0001f464 Colaborador:", [usuario_atraso], disabled=True)
+                    colab = usuario_atraso
+                else:
+                    colab = st.selectbox("\U0001f464 Colaborador:", colabs)
                 nf     = st.text_input("\U0001f4c4 Nota Fiscal:")
                 pedido = st.text_input("\U0001f4e6 N\u00famero do Pedido:")
             with c2:
@@ -268,10 +273,15 @@ def pagina_pendencias():
 
     elif tipo_fluxo == "Devolu\u00e7\u00e3o":
         st.subheader("Registro de Devolu\u00e7\u00e3o")
+        usuario_dev = st.session_state.get("usuario_logado", "")
         with st.form("form_devolucao", clear_on_submit=True):
             c1, c2 = st.columns(2)
             with c1:
-                colab  = st.selectbox("\U0001f464 Colaborador:", colabs)
+                if usuario_dev:
+                    st.selectbox("\U0001f464 Colaborador:", [usuario_dev], disabled=True)
+                    colab = usuario_dev
+                else:
+                    colab = st.selectbox("\U0001f464 Colaborador:", colabs)
                 nf     = st.text_input("\U0001f4c4 Nota Fiscal:")
                 pedido = st.text_input("\U0001f4e6 N\u00famero do Pedido:")
             with c2:
