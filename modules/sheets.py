@@ -62,6 +62,11 @@ def _conectar() -> gspread.Worksheet | None:
 
 def salvar_registro(dados: dict) -> bool:
     """Grava uma linha na planilha com 3 tentativas e backoff exponencial."""
+    # Guard: rejeita linhas sem campos essenciais para evitar registros em branco
+    if not str(dados.get("colaborador", "")).strip():
+        return False
+    if not str(dados.get("setor", "")).strip():
+        return False
     agora = _obter_data_hora_brasil()
     linha = [
         agora.strftime("%d/%m/%Y"),
@@ -236,5 +241,83 @@ def carregar_problemas() -> pd.DataFrame:
         if registros:
             return pd.DataFrame(registros)
         return pd.DataFrame(columns=COLUNAS_PROBLEMAS)
+    except Exception:
+        return pd.DataFrame()
+
+
+# ── Acompanhamento de Tratativas ──────────────────────────────────────────────
+
+COLUNAS_ACOMPANHAMENTO = [
+    "Data", "Hora", "ProblemID", "ProblemTitulo", "Colaborador", "Atualizacao",
+]
+
+
+@st.cache_resource(ttl=300, show_spinner=False)
+def _conectar_acompanhamento() -> gspread.Worksheet | None:
+    """Conecta à aba 'Acompanhamento_Problemas'. Cria automaticamente se não existir."""
+    try:
+        creds = _build_creds()
+        if creds:
+            client = gspread.service_account_from_dict(creds)
+        elif os.path.exists("credentials.json"):
+            client = gspread.service_account(filename="credentials.json")
+        else:
+            return None
+
+        planilha = client.open(NOME_PLANILHA)
+        try:
+            ws = planilha.worksheet("Acompanhamento_Problemas")
+            if ws.row_values(1) != COLUNAS_ACOMPANHAMENTO:
+                ws.update("A1", [COLUNAS_ACOMPANHAMENTO])
+            return ws
+        except gspread.WorksheetNotFound:
+            ws = planilha.add_worksheet(title="Acompanhamento_Problemas", rows=1000, cols=10)
+            ws.append_row(COLUNAS_ACOMPANHAMENTO)
+            return ws
+    except Exception:
+        return None
+
+
+def salvar_acompanhamento(dados: dict) -> bool:
+    """Grava uma atualização de acompanhamento com 3 tentativas e backoff exponencial."""
+    if not str(dados.get("atualizacao", "")).strip():
+        return False
+    if not str(dados.get("colaborador", "")).strip():
+        return False
+
+    agora = _obter_data_hora_brasil()
+    linha = [
+        agora.strftime("%d/%m/%Y"),
+        agora.strftime("%H:%M:%S"),
+        dados.get("problem_id", ""),
+        dados.get("problem_titulo", ""),
+        dados.get("colaborador", ""),
+        dados.get("atualizacao", ""),
+    ]
+    for tentativa in range(3):
+        try:
+            sheet = _conectar_acompanhamento()
+            if sheet is None:
+                return False
+            sheet.append_row(linha)
+            carregar_acompanhamentos.clear()
+            return True
+        except Exception:
+            if tentativa < 2:
+                time.sleep(0.5 * (2 ** tentativa))
+    return False
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def carregar_acompanhamentos() -> pd.DataFrame:
+    """Retorna todos os registros de acompanhamento como DataFrame (cache 60s)."""
+    sheet = _conectar_acompanhamento()
+    if sheet is None:
+        return pd.DataFrame()
+    try:
+        registros = sheet.get_all_records()
+        if registros:
+            return pd.DataFrame(registros)
+        return pd.DataFrame(columns=COLUNAS_ACOMPANHAMENTO)
     except Exception:
         return pd.DataFrame()

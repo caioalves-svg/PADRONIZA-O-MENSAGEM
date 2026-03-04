@@ -9,9 +9,46 @@ from modules.sheets import carregar_dados_dashboard, carregar_problemas
 # Mude novidade=True APENAS na versão mais recente.
 VERSOES = [
     {
+        "versao": "v1.4",
+        "data": "04/03/2026",
+        "novidade": True,
+        "features": [
+            {
+                "icone": "📌",
+                "nome": "Acompanhamento de Tratativas",
+                "cor": "linear-gradient(135deg,#0369a1,#0ea5e9)",
+                "o_que_e": (
+                    "Nova aba no Diário de Problemas para a equipe relatar, "
+                    "em tempo real, o que está acontecendo no processo de resolução "
+                    "de cada problema. Cada entrada forma uma timeline por problema."
+                ),
+                "como_usar": (
+                    "Acesse Diário de Problemas → aba 📌 Acompanhamento. "
+                    "Selecione o problema na lista, descreva o andamento da tratativa "
+                    "e clique em Registrar Atualização. O histórico aparece logo abaixo."
+                ),
+            },
+            {
+                "icone": "🛡️",
+                "nome": "Proteção contra registros em branco",
+                "cor": "linear-gradient(135deg,#065f46,#059669)",
+                "o_que_e": (
+                    "Correção de bug que causava a gravação de linhas com campos "
+                    "vazios no Google Sheets. Ocorria quando o usuário clicava "
+                    "no botão Registrar mais de uma vez após o primeiro salvamento."
+                ),
+                "como_usar": (
+                    "Nenhuma ação necessária — a proteção é automática. "
+                    "O sistema agora rejeita qualquer tentativa de salvar "
+                    "um registro sem colaborador ou setor preenchidos."
+                ),
+            },
+        ],
+    },
+    {
         "versao": "v1.3",
         "data": "02/03/2026",
-        "novidade": True,
+        "novidade": False,
         "features": [
             {
                 "icone": "🛠️",
@@ -204,7 +241,7 @@ def pagina_home():
     try:
         df_prob = carregar_problemas()
         if not df_prob.empty and "Status" in df_prob.columns:
-            df_ativos = df_prob[df_prob["Status"].isin(["Em Análise", "Em Observação"])].copy()
+            df_ativos = df_prob[~df_prob["Status"].isin(["Resolvido", "Descartado"])].copy()
             if df_ativos.empty:
                 st.success("✅ Nenhuma tarefa em aberto no momento!")
             else:

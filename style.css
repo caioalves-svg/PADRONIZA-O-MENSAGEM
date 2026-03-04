@@ -30,6 +30,12 @@ section[data-testid="stSidebar"] .stButton button {
     padding: 0.5rem 1rem;
 }
 
+/* Garante texto branco em todos os elementos filhos do botão Sair */
+section[data-testid="stSidebar"] .stButton button *,
+section[data-testid="stSidebar"] .stButton button p {
+    color: #ffffff !important;
+}
+
 section[data-testid="stSidebar"] .stButton button:hover {
     box-shadow: 0 8px 15px -3px rgba(220, 38, 38, 0.5);
 }
@@ -155,4 +161,9 @@ div[data-testid="column"]:last-child .stButton button:hover {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
     box-shadow: 0 8px 15px -3px rgba(220, 38, 38, 0.4);
     transform: translateY(-2px);
+    color: white !important;
+}
+
+div[data-testid="column"]:last-child .stButton button:hover * {
+    color: white !important;
 }

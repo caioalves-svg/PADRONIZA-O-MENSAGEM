@@ -5,7 +5,10 @@ from datetime import date, datetime
 
 import streamlit as st
 
-from modules.sheets import salvar_problema, carregar_problemas, atualizar_problema
+from modules.sheets import (
+    salvar_problema, carregar_problemas, atualizar_problema,
+    salvar_acompanhamento, carregar_acompanhamentos,
+)
 
 _COOLDOWN = 30
 
@@ -231,6 +234,42 @@ def _limpar_prob():
     st.session_state.pop("_ultimo_save_prob", None)
 
 
+# ── Callbacks: Acompanhamento ─────────────────────────────────────────────────
+
+_COOLDOWN_ACOMP = 30
+
+
+def _callback_salvar_acompanhamento(colab: str, problem_id: str, problem_titulo: str):
+    ultimo_tempo = st.session_state.get("_ultimo_save_acomp", 0.0)
+    decorrido = time.time() - ultimo_tempo
+
+    if decorrido < _COOLDOWN_ACOMP:
+        st.session_state["_aviso_dup_acomp"] = int(_COOLDOWN_ACOMP - decorrido)
+        return
+
+    if st.session_state.get("_salvando_acomp"):
+        return
+    st.session_state["_salvando_acomp"] = True
+
+    dados = {
+        "problem_id":     problem_id,
+        "problem_titulo": problem_titulo,
+        "colaborador":    colab,
+        "atualizacao":    st.session_state.get("atualizacao_acomp", ""),
+    }
+
+    sucesso = salvar_acompanhamento(dados)
+    st.session_state["_salvando_acomp"] = False
+
+    if sucesso:
+        st.session_state["_ultimo_save_acomp"] = time.time()
+        st.session_state["sucesso_acomp"] = True
+        if "atualizacao_acomp" in st.session_state:
+            st.session_state["atualizacao_acomp"] = ""
+    else:
+        st.session_state["erro_acomp"] = True
+
+
 # ── Tab 1: Registrar ──────────────────────────────────────────────────────────
 
 def _tab_registrar(colab: str):
@@ -330,9 +369,9 @@ def _tab_registrar(colab: str):
 
 def _tab_quadro_publico():
     st.markdown("""<div style="border-left:4px solid #0369a1;padding:0.1rem 0 0.1rem 0.9rem;margin:0.9rem 0">
-        <span style="font-size:1rem;font-weight:700;color:#1e293b">Tarefas em andamento</span>
+        <span style="font-size:1rem;font-weight:700;color:#1e293b">Quadro de Problemas</span>
         <span style="font-size:0.82rem;color:#64748b;margin-left:0.5rem">
-            — problemas sob análise ou em observação
+            — todos os problemas em aberto da equipe
         </span>
     </div>""", unsafe_allow_html=True)
 
@@ -347,10 +386,10 @@ def _tab_quadro_publico():
         st.info("📭 Nenhum problema registrado ainda.")
         return
 
-    df_ativos = df[df["Status"].isin(["Em Análise", "Em Observação"])].copy()
+    df_ativos = df[~df["Status"].isin(["Resolvido", "Descartado"])].copy()
 
     if df_ativos.empty:
-        st.success("✅ Nenhuma tarefa em aberto no momento! Tudo resolvido.")
+        st.success("✅ Nenhum problema em aberto no momento!")
         return
 
     if "Data" in df_ativos.columns:
@@ -358,10 +397,12 @@ def _tab_quadro_publico():
     else:
         df_ativos["_dias"] = 0
 
-    # Ordena: mais urgentes primeiro (mais dias em aberto)
-    df_ativos = df_ativos.sort_values("_dias", ascending=False)
+    # Ordena: Em Análise → Em Observação → Pendente; dentro de cada status, mais antigos primeiro
+    _STATUS_ORDER = {"Em Análise": 0, "Em Observação": 1, "Pendente": 2}
+    df_ativos["_ordem"] = df_ativos["Status"].map(_STATUS_ORDER).fillna(3)
+    df_ativos = df_ativos.sort_values(["_ordem", "_dias"], ascending=[True, False])
 
-    st.caption(f"{len(df_ativos)} tarefa(s) em andamento")
+    st.caption(f"{len(df_ativos)} problema(s) em aberto")
 
     # Grade de 2 cards por linha
     rows = list(df_ativos.iterrows())
@@ -680,6 +721,120 @@ def _tab_gestao():
         )
 
 
+# ── Tab 4: Acompanhamento de Tratativas ───────────────────────────────────────
+
+def _tab_acompanhamento(colab: str):
+    st.markdown("""<div style="border-left:4px solid #0369a1;padding:0.1rem 0 0.1rem 0.9rem;margin:0.9rem 0">
+        <span style="font-size:1rem;font-weight:700;color:#1e293b">Registrar atualização</span>
+        <span style="font-size:0.82rem;color:#64748b;margin-left:0.5rem">
+            — relate o que está acontecendo no processo de resolução
+        </span>
+    </div>""", unsafe_allow_html=True)
+
+    df_prob = carregar_problemas()
+
+    if df_prob.empty or "Status" not in df_prob.columns:
+        st.info("📭 Nenhum problema ativo para acompanhar.")
+        return
+
+    df_ativos = df_prob[~df_prob["Status"].isin(["Resolvido", "Descartado"])].copy()
+
+    if df_ativos.empty:
+        st.success("✅ Nenhum problema em aberto no momento. Tudo resolvido!")
+        return
+
+    def _label_problema(row) -> str:
+        titulo = str(row.get("Titulo", "")).strip() or str(row.get("Descricao", ""))[:60]
+        area = str(row.get("Area", ""))
+        pid = str(row.get("ID", ""))
+        return f"[{pid}] {titulo} — {area}"
+
+    opcoes: dict[str, tuple] = {}
+    for _, row in df_ativos.iterrows():
+        lbl = _label_problema(row)
+        titulo = str(row.get("Titulo", "")).strip() or str(row.get("Descricao", ""))[:80]
+        opcoes[lbl] = (str(row.get("ID", "")), titulo)
+
+    opcoes_labels = list(opcoes.keys())
+    problema_label = st.selectbox("🔍 Selecione o problema:", opcoes_labels, key="sel_acomp")
+    problem_id, problem_titulo = opcoes.get(problema_label, ("", ""))
+
+    st.text_area(
+        "📝 O que está acontecendo no processo de resolução?",
+        key="atualizacao_acomp",
+        height=130,
+        placeholder=(
+            "Ex.: Aguardando retorno da transportadora. Ligamos em 04/03 e prometeram resposta até amanhã. "
+            "Ticket aberto sob nº 98765..."
+        ),
+    )
+
+    atualizacao = st.session_state.get("atualizacao_acomp", "")
+
+    col_btn, _ = st.columns([3, 1])
+    with col_btn:
+        st.button(
+            "✅ Registrar Atualização",
+            key="btn_save_acomp",
+            on_click=_callback_salvar_acompanhamento,
+            args=(colab, problem_id, problem_titulo),
+            disabled=not atualizacao.strip(),
+            type="primary",
+            use_container_width=True,
+        )
+
+    if not atualizacao.strip():
+        st.caption("⚠️ Descreva o que está acontecendo antes de registrar.")
+
+    # ── Timeline de atualizações ──────────────────────────────────────────────
+    st.markdown("<hr style='margin:1.1rem 0;border-color:#e2e8f0'>", unsafe_allow_html=True)
+    st.markdown("""<div style="border-left:4px solid #64748b;padding:0.1rem 0 0.1rem 0.9rem;margin-bottom:0.75rem">
+        <span style="font-size:0.95rem;font-weight:700;color:#1e293b">Histórico de atualizações</span>
+    </div>""", unsafe_allow_html=True)
+
+    col_r, _ = st.columns([1, 5])
+    with col_r:
+        if st.button("🔄 Atualizar", key="btn_refresh_acomp"):
+            carregar_acompanhamentos.clear()
+
+    df_acomp = carregar_acompanhamentos()
+
+    if df_acomp.empty or "ProblemID" not in df_acomp.columns:
+        st.info("📭 Nenhuma atualização registrada ainda para nenhum problema.")
+        return
+
+    if not problem_id:
+        st.info("Selecione um problema para ver o histórico.")
+        return
+
+    df_filtrado = df_acomp[df_acomp["ProblemID"].astype(str) == problem_id].copy()
+
+    if df_filtrado.empty:
+        st.info("Nenhuma atualização registrada para este problema ainda. Seja o primeiro!")
+        return
+
+    st.caption(f"{len(df_filtrado)} atualização(ões) registrada(s)")
+
+    for _, row in df_filtrado.iloc[::-1].iterrows():
+        data = str(row.get("Data", ""))
+        hora = str(row.get("Hora", ""))
+        colaborador = str(row.get("Colaborador", "")) or "—"
+        atualiz = str(row.get("Atualizacao", ""))
+
+        st.markdown(
+            f'<div style="background:white;border-radius:10px;padding:0.9rem 1.1rem;'
+            f'box-shadow:0 2px 8px -2px rgba(0,0,0,0.07);border-left:4px solid #0369a1;'
+            f'margin-bottom:0.6rem">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">'
+            f'<span style="font-weight:700;font-size:0.83rem;color:#0369a1">👤 {colaborador}</span>'
+            f'<span style="font-size:0.75rem;color:#94a3b8">{data} {hora}</span>'
+            f'</div>'
+            f'<p style="margin:0;color:#334155;font-size:0.87rem;line-height:1.5">{atualiz}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+
 # ── Página principal ──────────────────────────────────────────────────────────
 
 def pagina_problemas():
@@ -688,9 +843,18 @@ def pagina_problemas():
     if st.session_state.pop("erro_prob", False):
         st.error("⚠️ Falha ao salvar. Tente novamente.")
 
+    if st.session_state.pop("sucesso_acomp", False):
+        st.toast("Atualização registrada com sucesso!", icon="✅")
+    if st.session_state.pop("erro_acomp", False):
+        st.error("⚠️ Falha ao salvar atualização. Tente novamente.")
+
     aviso = st.session_state.pop("_aviso_dup_prob", None)
     if aviso is not None:
         st.warning(f"⚠️ Aguarde {aviso}s antes de registrar novamente.")
+
+    aviso_acomp = st.session_state.pop("_aviso_dup_acomp", None)
+    if aviso_acomp is not None:
+        st.warning(f"⚠️ Aguarde {aviso_acomp}s antes de registrar nova atualização.")
 
     st.markdown("""\
     <div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 55%,#ec4899 100%);
@@ -705,7 +869,7 @@ def pagina_problemas():
 
     usuario = st.session_state.get("usuario_logado", "")
 
-    tab_names = ["➕ Registrar Problema", "📊 Quadro Público", "✏️ Meus Registros"]
+    tab_names = ["➕ Registrar Problema", "📊 Quadro Público", "✏️ Meus Registros", "📌 Acompanhamento"]
     if usuario == GESTORA:
         tab_names.append("🛠️ Gestão")
 
@@ -720,6 +884,9 @@ def pagina_problemas():
     with tabs[2]:
         _tab_meus_registros(usuario)
 
-    if len(tabs) > 3:
-        with tabs[3]:
+    with tabs[3]:
+        _tab_acompanhamento(usuario)
+
+    if len(tabs) > 4:
+        with tabs[4]:
             _tab_gestao()
