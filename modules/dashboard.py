@@ -109,7 +109,15 @@ def pagina_dashboard():
 
     # ── Filtros na sidebar ────────────────────────────────────────────────────
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**🔍 Filtros do painel**")
+    st.sidebar.markdown("**🔍 Busca rápida**")
+    termo_busca = st.sidebar.text_input(
+        "NF, pedido ou colaborador:",
+        placeholder="Ex: 12345 ou Ana",
+        key="busca_dash",
+    )
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("**Filtros do painel**")
 
     d_min = df_raw["Data_Filtro"].min().date() if not df_raw["Data_Filtro"].isnull().all() else datetime.today().date()
     d_max = df_raw["Data_Filtro"].max().date() if not df_raw["Data_Filtro"].isnull().all() else datetime.today().date()
@@ -136,6 +144,37 @@ def pagina_dashboard():
 
     # Nota de transparência
     st.sidebar.caption(f"📦 {total_na_base} registros na base · {len(df)} exibidos")
+
+    # ── Busca rápida (pesquisa em toda a base, ignora filtro de período) ───────
+    if termo_busca.strip():
+        cols_b = [c for c in ["Nota_Fiscal", "Numero_Pedido", "Colaborador", "Motivo"] if c in df_raw.columns]
+        mask_b = df_raw[cols_b].astype(str).apply(
+            lambda col: col.str.contains(termo_busca.strip(), case=False, na=False)
+        ).any(axis=1)
+        df_busca = df_raw[mask_b].copy()
+
+        st.markdown(
+            f'<div style="background:linear-gradient(90deg,#eff6ff,#f0fdf4);border-radius:12px;'
+            f'padding:0.75rem 1.1rem;margin-bottom:1rem;border-left:4px solid #2563eb">'
+            f'<span style="font-weight:700;color:#1e293b">🔍 Resultados para "{termo_busca}"</span>'
+            f'<span style="font-size:0.85rem;color:#64748b;margin-left:0.75rem">'
+            f'{"Nenhum resultado encontrado." if df_busca.empty else f"{len(df_busca)} registro(s) encontrado(s) em toda a base"}'
+            f'</span></div>',
+            unsafe_allow_html=True,
+        )
+
+        if not df_busca.empty:
+            df_busca_show = df_busca.drop(columns=["Data_Filtro", "Hora_Int"], errors="ignore")
+            st.dataframe(df_busca_show, use_container_width=True, hide_index=True)
+            csv_b = df_busca_show.to_csv(index=False, sep=";", encoding="utf-8-sig").encode("utf-8-sig")
+            st.download_button(
+                "⬇️ Exportar resultado",
+                data=csv_b,
+                file_name=f"busca_{termo_busca.strip()}.csv",
+                mime="text/csv",
+            )
+
+        st.markdown("<hr style='margin:1.5rem 0'>", unsafe_allow_html=True)
 
     # Coluna de hora (necessária para cálculos de velocidade)
     df["Hora_Int"] = pd.to_datetime(df["Hora"], format="%H:%M:%S", errors="coerce").dt.hour

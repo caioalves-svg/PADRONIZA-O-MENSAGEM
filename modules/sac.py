@@ -5,6 +5,7 @@ import streamlit as st
 
 from modules.templates import carregar_templates, carregar_listas
 from modules.sheets import salvar_registro
+from modules.utils import botao_copiar
 from modules.validation import validar_sac
 
 _COOLDOWN = 60
@@ -125,6 +126,14 @@ def _callback_registrar(texto_final: str, transp_extra: str, colab: str):
         st.session_state["_ultimo_save_s"] = time.time()
         st.session_state["sucesso_recente_s"] = True
 
+        # Confirmação visual persistente
+        st.session_state["_ultimo_registro_s"] = {
+            "hora":   time.strftime("%H:%M:%S"),
+            "nf":     dados.get("nota_fiscal", ""),
+            "pedido": dados.get("numero_pedido", ""),
+            "motivo": dados.get("motivo", ""),
+        }
+
         for campo in ["cliente_s", "nf_s", "ped_s", "celular_cobr_s"]:
             if campo in st.session_state:
                 st.session_state[campo] = ""
@@ -159,15 +168,28 @@ def _limpar_campos_s():
     st.session_state["cobrar_s"] = False
     st.session_state.pop("_ultimo_hash_s", None)
     st.session_state.pop("_ultimo_save_s", None)
+    st.session_state.pop("_ultimo_registro_s", None)
     if "texto_persistente_s" in st.session_state:
         del st.session_state["texto_persistente_s"]
 
 
 def pagina_sac():
     if st.session_state.pop("sucesso_recente_s", False):
-        st.toast("Registrado e Limpo!", icon="\u2705")
+        st.toast("Registrado!", icon="\u2705")
     if st.session_state.pop("erro_recente_s", False):
         st.error("\u26a0\ufe0f Falha ao salvar. Tente novamente.")
+
+    # Confirmação visual persistente do último registro
+    reg = st.session_state.get("_ultimo_registro_s")
+    if reg:
+        partes = [f"\u23f1\ufe0f {reg.get('hora', '')}"]
+        if reg.get("nf"):
+            partes.append(f"NF {reg['nf']}")
+        if reg.get("pedido"):
+            partes.append(f"Pedido {reg['pedido']}")
+        if reg.get("motivo"):
+            partes.append(reg["motivo"])
+        st.success(f"\u2705 **\u00daltimo registro salvo** \u2014 {' \u00b7 '.join(partes)}")
 
     restante = st.session_state.pop("_aviso_dup_s", None)
     if restante is not None:
@@ -375,5 +397,6 @@ def pagina_sac():
 
     if "texto_persistente_s" in st.session_state:
         st.markdown("---")
-        st.info("\U0001f4dd \u00daltimo texto registrado (C\u00f3pia Segura):")
+        st.info("\U0001f4dd \u00daltimo texto registrado:")
         st.code(st.session_state["texto_persistente_s"], language="text")
+        botao_copiar(st.session_state["texto_persistente_s"], key_suffix="s")

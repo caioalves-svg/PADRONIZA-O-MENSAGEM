@@ -9,9 +9,61 @@ from modules.sheets import carregar_dados_dashboard, carregar_problemas
 # Mude novidade=True APENAS na versão mais recente.
 VERSOES = [
     {
-        "versao": "v1.4",
+        "versao": "v1.5",
         "data": "04/03/2026",
         "novidade": True,
+        "features": [
+            {
+                "icone": "🔍",
+                "nome": "Busca de Atendimento",
+                "cor": "linear-gradient(135deg,#1e40af,#2563eb)",
+                "o_que_e": (
+                    "Campo de busca no Dashboard que localiza qualquer atendimento "
+                    "por número de NF, pedido ou colaborador — em toda a base, "
+                    "independente do filtro de datas."
+                ),
+                "como_usar": (
+                    "No Dashboard, use o campo 'Busca rápida' na barra lateral. "
+                    "Digite o número do pedido, NF ou nome e os resultados aparecem "
+                    "no topo da página com opção de exportar."
+                ),
+            },
+            {
+                "icone": "📋",
+                "nome": "Cópia automática da mensagem",
+                "cor": "linear-gradient(135deg,#0369a1,#0ea5e9)",
+                "o_que_e": (
+                    "Botão de cópia real nas telas de SAC e Pendências. "
+                    "Ao registrar, aparece um botão que copia a mensagem "
+                    "diretamente para a área de transferência com um clique."
+                ),
+                "como_usar": (
+                    "Após registrar o atendimento, clique em '📋 Copiar mensagem' "
+                    "abaixo do texto. O botão vira '✅ Copiado!' confirmando. "
+                    "Depois é só colar no sistema de atendimento."
+                ),
+            },
+            {
+                "icone": "✅",
+                "nome": "Confirmação visual de registro",
+                "cor": "linear-gradient(135deg,#065f46,#059669)",
+                "o_que_e": (
+                    "Box verde persistente no topo da página que mostra os "
+                    "detalhes do último registro salvo: horário, NF, pedido "
+                    "e motivo. Fica visível até o próximo atendimento."
+                ),
+                "como_usar": (
+                    "Nenhuma ação necessária. Após salvar, o box aparece "
+                    "automaticamente. Ele some ao clicar em 'Limpar Campos' "
+                    "ou ao registrar um novo atendimento."
+                ),
+            },
+        ],
+    },
+    {
+        "versao": "v1.4",
+        "data": "04/03/2026",
+        "novidade": False,
         "features": [
             {
                 "icone": "📌",
