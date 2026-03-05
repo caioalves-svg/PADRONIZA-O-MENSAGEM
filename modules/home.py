@@ -273,7 +273,7 @@ def pagina_home():
                 "Veja abaixo o que mudou e como usar."
             )
         with col_x:
-            st.button("✕", key="btn_fechar_banner", on_click=_fechar_banner, help="Fechar aviso")
+            st.button("✕", key="btn_fechar_banner", on_click=_fechar_banner, help="Fechar aviso", type="secondary")
 
     # ── Cards das features ─────────────────────────────────────────────────────
     _secao("✨ Novidades desta versão")

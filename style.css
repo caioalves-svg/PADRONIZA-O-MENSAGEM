@@ -110,28 +110,58 @@ h2, h3 {
     background-color: transparent !important;
 }
 
-/* 6. BOTÕES (O Destaque) */
+/* 6. BOTÕES */
+
+/* Base — layout e fonte (sem cor) */
 .stButton button {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); /* Gradiente Azul */
-    color: white;
+    border-radius: 10px;
+    padding: 0.65rem 1.4rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    white-space: nowrap;
     border: none;
+}
+
+/* Primário — azul */
+.stButton button[data-testid="stBaseButton-primary"] {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35);
+}
+
+.stButton button[data-testid="stBaseButton-primary"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -4px rgba(37, 99, 235, 0.45);
+}
+
+.stButton button[data-testid="stBaseButton-primary"]:active {
+    transform: translateY(0);
+}
+
+/* Secundário — cinza neutro (utilitários) */
+.stButton button[data-testid="stBaseButton-secondary"] {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none;
+}
+
+.stButton button[data-testid="stBaseButton-secondary"]:hover {
+    background: #e2e8f0;
+    color: #334155;
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Botão de ação principal — largura total */
+.botao-registrar .stButton button {
+    width: 100%;
     padding: 0.8rem 2rem;
     font-size: 1rem;
-    font-weight: 600;
-    border-radius: 12px;
-    width: 100%;
-    cursor: pointer;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stButton button:hover {
-    transform: translateY(-3px) scale(1.02); /* Sobe e cresce um pouquinho */
-    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
-}
-
-.stButton button:active {
-    transform: translateY(0);
+    box-shadow: 0 6px 16px -3px rgba(37, 99, 235, 0.4);
 }
 
 /* 7. MENSAGENS DE SUCESSO */
@@ -151,19 +181,23 @@ label {
     margin-bottom: 5px;
 }
 
-/* 9. BOTÃO LIMPAR — cinza neutro, menor destaque */
-div[data-testid="column"]:last-child .stButton button {
-    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-    box-shadow: 0 4px 8px -2px rgba(100, 116, 139, 0.3);
+/* 9. BOTÃO DE DOWNLOAD */
+.stDownloadButton button {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #86efac !important;
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
-div[data-testid="column"]:last-child .stButton button:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    box-shadow: 0 8px 15px -3px rgba(220, 38, 38, 0.4);
-    transform: translateY(-2px);
-    color: white !important;
-}
-
-div[data-testid="column"]:last-child .stButton button:hover * {
-    color: white !important;
+.stDownloadButton button:hover {
+    background: #dcfce7;
+    border-color: #4ade80 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(22, 101, 52, 0.15);
 }

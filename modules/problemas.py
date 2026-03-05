@@ -358,6 +358,7 @@ def _tab_registrar(colab: str):
             "🗑️ Limpar",
             key="btn_limpar_prob",
             on_click=_limpar_prob,
+            type="secondary",
             use_container_width=True,
         )
 
@@ -377,7 +378,7 @@ def _tab_quadro_publico():
 
     col_r, _ = st.columns([1, 5])
     with col_r:
-        if st.button("🔄 Atualizar", key="btn_refresh_quadro"):
+        if st.button("🔄 Atualizar", key="btn_refresh_quadro", type="secondary"):
             carregar_problemas.clear()
 
     df = carregar_problemas()
@@ -429,7 +430,7 @@ def _tab_meus_registros(colab: str):
 
     col_r, _ = st.columns([1, 5])
     with col_r:
-        if st.button("🔄 Atualizar", key="btn_refresh_meus"):
+        if st.button("🔄 Atualizar", key="btn_refresh_meus", type="secondary"):
             carregar_problemas.clear()
 
     df = carregar_problemas()
@@ -629,7 +630,7 @@ def _form_gestao(row, responsaveis: list, prefix: str):
 def _tab_gestao():
     col_r, _ = st.columns([1, 5])
     with col_r:
-        if st.button("🔄 Atualizar", key="btn_refresh_gestao"):
+        if st.button("🔄 Atualizar", key="btn_refresh_gestao", type="secondary"):
             carregar_problemas.clear()
 
     df = carregar_problemas()
@@ -794,7 +795,7 @@ def _tab_acompanhamento(colab: str):
 
     col_r, _ = st.columns([1, 5])
     with col_r:
-        if st.button("🔄 Atualizar", key="btn_refresh_acomp"):
+        if st.button("🔄 Atualizar", key="btn_refresh_acomp", type="secondary"):
             carregar_acompanhamentos.clear()
 
     df_acomp = carregar_acompanhamentos()

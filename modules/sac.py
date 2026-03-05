@@ -385,6 +385,7 @@ def pagina_sac():
             on_click=_callback_registrar,
             args=(texto_final, transp_extra, colab),
             disabled=bool(faltando) or ja_registrado or faltando_cobr,
+            type="primary",
         )
         st.markdown("</div>", unsafe_allow_html=True)
     with col_btn2:
@@ -392,6 +393,7 @@ def pagina_sac():
             "\U0001f5d1\ufe0f Limpar Campos",
             key="btn_limpar_sac",
             on_click=_limpar_campos_s,
+            type="secondary",
             use_container_width=True,
         )
 

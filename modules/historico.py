@@ -57,7 +57,7 @@ def pagina_historico():
     # ── Carrega dados (cache próprio de 10 min, independente do Dashboard) ─────
     col_r, _ = st.columns([1, 7])
     with col_r:
-        if st.button("🔄 Atualizar", key="btn_refresh_hist"):
+        if st.button("🔄 Atualizar", key="btn_refresh_hist", type="secondary"):
             carregar_historico.clear()
             st.session_state.pop("hist_page", None)
 
@@ -104,7 +104,7 @@ def pagina_historico():
     with c5:
         st.markdown("<div style='margin-top:1.75rem'>", unsafe_allow_html=True)
         st.button("↺ Limpar", key="btn_limpar_hist", on_click=_limpar_filtros_hist,
-                  use_container_width=True)
+                  type="secondary", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Aplica filtros ─────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ def pagina_historico():
     if n_pages > 1:
         pc1, pc2, pc3 = st.columns([1, 3, 1])
         with pc1:
-            if st.button("← Anterior", disabled=page == 0, key="hist_prev"):
+            if st.button("← Anterior", disabled=page == 0, key="hist_prev", type="secondary"):
                 st.session_state["hist_page"] = page - 1
                 st.rerun()
         with pc2:
@@ -191,7 +191,7 @@ def pagina_historico():
                 unsafe_allow_html=True,
             )
         with pc3:
-            if st.button("Próxima →", disabled=page >= n_pages - 1, key="hist_next"):
+            if st.button("Próxima →", disabled=page >= n_pages - 1, key="hist_next", type="secondary"):
                 st.session_state["hist_page"] = page + 1
                 st.rerun()
 

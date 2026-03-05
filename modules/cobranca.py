@@ -20,7 +20,7 @@ def pagina_cobranca():
 
     col_atualizar, _ = st.columns([1, 5])
     with col_atualizar:
-        if st.button("\U0001f504 Atualizar dados"):
+        if st.button("\U0001f504 Atualizar dados", type="secondary"):
             carregar_dados_dashboard.clear()
             st.rerun()
 
