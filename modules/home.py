@@ -9,9 +9,46 @@ from modules.sheets import carregar_dados_dashboard, carregar_problemas
 # Mude novidade=True APENAS na versão mais recente.
 VERSOES = [
     {
-        "versao": "v1.5",
-        "data": "04/03/2026",
+        "versao": "v1.6",
+        "data": "05/03/2026",
         "novidade": True,
+        "features": [
+            {
+                "icone": "📂",
+                "nome": "Histórico de Atendimentos",
+                "cor": "linear-gradient(135deg,#0f172a,#0369a1)",
+                "o_que_e": (
+                    "Página dedicada para consultar todos os atendimentos registrados. "
+                    "Busca por NF, pedido ou colaborador, filtros de data, setor "
+                    "e colaborador, tabela completa e exportação CSV e Excel."
+                ),
+                "como_usar": (
+                    "Acesse '📂 Histórico' no menu lateral. Use o campo de busca "
+                    "ou os filtros para localizar atendimentos. A busca por texto "
+                    "varre toda a base independente do período selecionado."
+                ),
+            },
+            {
+                "icone": "📊",
+                "nome": "Dashboard focado em análise",
+                "cor": "linear-gradient(135deg,#1e40af,#2563eb)",
+                "o_que_e": (
+                    "O Dashboard Gerencial foi simplificado: agora exibe apenas "
+                    "gráficos e KPIs. A tabela de registros e a busca foram "
+                    "movidas para a página de Histórico."
+                ),
+                "como_usar": (
+                    "Use o Dashboard para análise de tendências, desempenho por "
+                    "colaborador e distribuição por portal. Para consultar "
+                    "atendimentos específicos, use o Histórico."
+                ),
+            },
+        ],
+    },
+    {
+        "versao": "v1.5",
+        "data": "05/03/2026",
+        "novidade": False,
         "features": [
             {
                 "icone": "🔍",

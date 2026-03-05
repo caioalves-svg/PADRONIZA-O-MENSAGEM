@@ -17,6 +17,7 @@ from modules.pendencias import pagina_pendencias
 from modules.sac import pagina_sac
 from modules.cobranca import pagina_cobranca
 from modules.dashboard import pagina_dashboard
+from modules.historico import pagina_historico
 from modules.problemas import pagina_problemas
 
 if not verificar_autenticacao():
@@ -42,6 +43,7 @@ pagina = st.sidebar.radio(
         "SAC / Atendimento",
         "\U0001f4b0 Cobran\u00e7a",
         "\U0001f4ca Dashboard Gerencial",
+        "\U0001f4c2 Hist\u00f3rico",
         "\U0001f4cb Di\u00e1rio de Problemas",
     ),
     label_visibility="collapsed",
@@ -60,7 +62,9 @@ elif pagina == "SAC / Atendimento":
     pagina_sac()
 elif pagina == "\U0001f4b0 Cobran\u00e7a":
     pagina_cobranca()
+elif pagina == "\U0001f4ca Dashboard Gerencial":
+    pagina_dashboard()
+elif pagina == "\U0001f4c2 Hist\u00f3rico":
+    pagina_historico()
 elif pagina == "\U0001f4cb Di\u00e1rio de Problemas":
     pagina_problemas()
-else:
-    pagina_dashboard()
