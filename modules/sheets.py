@@ -96,6 +96,21 @@ def salvar_registro(dados: dict) -> bool:
     return False
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def carregar_historico() -> pd.DataFrame:
+    """Retorna todos os registros para o Histórico (cache 10 min — dado menos volátil)."""
+    sheet = _conectar()
+    if sheet is None:
+        return pd.DataFrame()
+    try:
+        registros = sheet.get_all_records()
+        if registros:
+            return pd.DataFrame(registros)
+        return pd.DataFrame(columns=COLUNAS)
+    except Exception:
+        return pd.DataFrame()
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def carregar_dados_dashboard() -> pd.DataFrame:
     sheet = _conectar()
