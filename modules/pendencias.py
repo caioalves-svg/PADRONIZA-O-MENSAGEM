@@ -84,6 +84,46 @@ def _limpar_campos_p():
     st.session_state.pop("_ultimo_registro_p", None)
 
 
+def _callback_registrar_atraso(colab: str):
+    dados = {
+        "setor":          "Pendência",
+        "colaborador":    colab,
+        "motivo":         f"ATRASO - {st.session_state.get('status_atraso', '')}",
+        "portal":         "-",
+        "nota_fiscal":    st.session_state.get("nf_atraso", ""),
+        "numero_pedido":  st.session_state.get("ped_atraso", ""),
+        "motivo_crm":     "-",
+        "transportadora": st.session_state.get("transp_atraso", "-"),
+    }
+    sucesso = salvar_registro(dados)
+    if sucesso:
+        st.session_state["nf_atraso"]  = ""
+        st.session_state["ped_atraso"] = ""
+        st.session_state["sucesso_atraso"] = True
+    else:
+        st.session_state["erro_atraso"] = True
+
+
+def _callback_registrar_devolucao(colab: str):
+    dados = {
+        "setor":          "Pendência",
+        "colaborador":    colab,
+        "motivo":         f"DEVOLUÇÃO - {st.session_state.get('status_dev', '')}",
+        "portal":         "-",
+        "nota_fiscal":    st.session_state.get("nf_dev", ""),
+        "numero_pedido":  st.session_state.get("ped_dev", ""),
+        "motivo_crm":     "-",
+        "transportadora": st.session_state.get("transp_dev", "-"),
+    }
+    sucesso = salvar_registro(dados)
+    if sucesso:
+        st.session_state["nf_dev"]  = ""
+        st.session_state["ped_dev"] = ""
+        st.session_state["sucesso_dev"] = True
+    else:
+        st.session_state["erro_dev"] = True
+
+
 def pagina_pendencias():
     if st.session_state.pop("sucesso_recente_p", False):
         st.toast("Registrado!", icon="\u2705")
@@ -273,51 +313,57 @@ def pagina_pendencias():
     elif tipo_fluxo == "Atraso":
         st.subheader("Registro de Atraso")
         usuario_atraso = st.session_state.get("usuario_logado", "")
-        with st.form("form_atraso", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            with c1:
-                if usuario_atraso:
-                    st.selectbox("\U0001f464 Colaborador:", [usuario_atraso], disabled=True)
-                    colab = usuario_atraso
-                else:
-                    colab = st.selectbox("\U0001f464 Colaborador:", colabs)
-                nf     = st.text_input("\U0001f4c4 Nota Fiscal:")
-                pedido = st.text_input("\U0001f4e6 N\u00famero do Pedido:")
-            with c2:
-                transp = st.selectbox("\U0001f69b Transportadora:", transportadoras)
-                status = st.selectbox("Status:", ["ENTREGUE", "CANCELADO", "COBRADO"])
-            submitted = st.form_submit_button("\u2705 Registrar Atraso")
-            if submitted:
-                salvar_registro({
-                    "setor": "Pend\u00eancia", "colaborador": colab,
-                    "motivo": f"ATRASO - {status}", "portal": "-",
-                    "nota_fiscal": nf, "numero_pedido": pedido,
-                    "motivo_crm": "-", "transportadora": transp,
-                })
-                st.toast("Atraso registrado!", icon="\u2705")
+        if st.session_state.pop("sucesso_atraso", False):
+            st.toast("Atraso registrado!", icon="✅")
+        if st.session_state.pop("erro_atraso", False):
+            st.error("⚠️ Falha ao salvar. Tente novamente.")
 
-    elif tipo_fluxo == "Devolu\u00e7\u00e3o":
-        st.subheader("Registro de Devolu\u00e7\u00e3o")
+        c1, c2 = st.columns(2)
+        with c1:
+            if usuario_atraso:
+                st.selectbox("👤 Colaborador:", [usuario_atraso], disabled=True)
+                colab_atraso = usuario_atraso
+            else:
+                colab_atraso = st.selectbox("👤 Colaborador:", colabs, key="colab_atraso")
+            st.text_input("📄 Nota Fiscal:", key="nf_atraso")
+            st.text_input("📦 Número do Pedido:", key="ped_atraso")
+        with c2:
+            st.selectbox("🚛 Transportadora:", transportadoras, key="transp_atraso")
+            st.selectbox("Status:", ["ENTREGUE", "CANCELADO", "COBRADO"], key="status_atraso")
+
+        st.button(
+            "✅ Registrar Atraso",
+            key="btn_save_atraso",
+            on_click=_callback_registrar_atraso,
+            args=(colab_atraso,),
+            type="primary",
+        )
+
+    elif tipo_fluxo == "Devolução":
+        st.subheader("Registro de Devolução")
         usuario_dev = st.session_state.get("usuario_logado", "")
-        with st.form("form_devolucao", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            with c1:
-                if usuario_dev:
-                    st.selectbox("\U0001f464 Colaborador:", [usuario_dev], disabled=True)
-                    colab = usuario_dev
-                else:
-                    colab = st.selectbox("\U0001f464 Colaborador:", colabs)
-                nf     = st.text_input("\U0001f4c4 Nota Fiscal:")
-                pedido = st.text_input("\U0001f4e6 N\u00famero do Pedido:")
-            with c2:
-                transp = st.selectbox("\U0001f69b Transportadora:", transportadoras)
-                status = st.selectbox("Status:", ["DEVOLVIDO", "COBRADO"])
-            submitted = st.form_submit_button("\u2705 Registrar Devolu\u00e7\u00e3o")
-            if submitted:
-                salvar_registro({
-                    "setor": "Pend\u00eancia", "colaborador": colab,
-                    "motivo": f"DEVOLU\u00c7\u00c3O - {status}", "portal": "-",
-                    "nota_fiscal": nf, "numero_pedido": pedido,
-                    "motivo_crm": "-", "transportadora": transp,
-                })
-                st.toast("Devolu\u00e7\u00e3o registrada!", icon="\u2705")
+        if st.session_state.pop("sucesso_dev", False):
+            st.toast("Devolução registrada!", icon="✅")
+        if st.session_state.pop("erro_dev", False):
+            st.error("⚠️ Falha ao salvar. Tente novamente.")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            if usuario_dev:
+                st.selectbox("👤 Colaborador:", [usuario_dev], disabled=True)
+                colab_dev = usuario_dev
+            else:
+                colab_dev = st.selectbox("👤 Colaborador:", colabs, key="colab_dev")
+            st.text_input("📄 Nota Fiscal:", key="nf_dev")
+            st.text_input("📦 Número do Pedido:", key="ped_dev")
+        with c2:
+            st.selectbox("🚛 Transportadora:", transportadoras, key="transp_dev")
+            st.selectbox("Status:", ["DEVOLVIDO", "COBRADO"], key="status_dev")
+
+        st.button(
+            "✅ Registrar Devolução",
+            key="btn_save_dev",
+            on_click=_callback_registrar_devolucao,
+            args=(colab_dev,),
+            type="primary",
+        )
